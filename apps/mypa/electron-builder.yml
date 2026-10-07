@@ -1,0 +1,49 @@
+# Packaging config — see NOTES.md "Packaging self-containment" for why each
+# asarUnpack entry is here. The short version: anything the main process
+# spawns as an external binary (ffmpeg) or loads as a native Node addon
+# (onnxruntime-node, sharp) can't be read out of an asar archive at runtime,
+# so it has to ship unpacked alongside it.
+appId: com.mypa.desktop
+productName: myPA
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - out/**/*
+  - package.json
+  - "!**/*.map"
+
+asarUnpack:
+  - "**/node_modules/ffmpeg-static/**"
+  - "**/node_modules/onnxruntime-node/**"
+  - "**/node_modules/onnxruntime-common/**"
+  - "**/node_modules/sharp/**"
+  - "**/node_modules/@img/**"
+  - "**/node_modules/sql.js/**"
+
+# mypa://widget/<id> links from the marketplace website (see src/main/deeplink.ts).
+protocols:
+  - name: myPA
+    schemes:
+      - mypa
+
+win:
+  target: nsis
+  icon: resources/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+mac:
+  target: dmg
+  icon: resources/icon.png
+  category: public.app-category.productivity
+
+linux:
+  target: AppImage
+  icon: resources/icon-512.png
+  category: Utility

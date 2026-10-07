@@ -1,0 +1,30 @@
+/* App-level globals. The shared visual language (palette, Poppins, reset)
+ * lives in @repo/design-system/styles.css, imported first in app/layout.tsx. */
+
+:root {
+  /* Bridge the starter's legacy variable names onto the shared tokens. */
+  --background: var(--ds-surface);
+  --foreground: var(--ds-fg);
+  --font-geist-sans: var(--ds-font-sans);
+  --font-geist-mono: var(--ds-font-sans);
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--ds-bg);
+  color: var(--foreground);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.imgDark {
+  display: none;
+}

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/__mypa/theme.css" />
+    <style>
+      .wc {
+        height: 100%;
+        overflow: auto;
+        padding: 10px 16px;
+        list-style: none;
+        margin: 0;
+      }
+      .wc__row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--ds-border);
+      }
+      .wc__row:last-child {
+        border-bottom: 0;
+      }
+      .wc__dot {
+        flex: 0 0 auto;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--ds-border-strong);
+      }
+      .wc__dot.is-work {
+        background: var(--ds-accent);
+      }
+      .wc__place {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        line-height: 1.3;
+      }
+      .wc__place b {
+        font-weight: 500;
+      }
+      .wc__place small {
+        color: var(--ds-muted);
+        font-size: 11px;
+      }
+      .wc__time {
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .wc__dot.is-night {
+        background: var(--ds-fg);
+      }
+      .wc__empty {
+        padding: 24px 0;
+        color: var(--ds-muted);
+        text-align: center;
+      }
+      .wc__err {
+        color: var(--ds-danger);
+        font-size: 11px;
+      }
+    </style>
+    <script src="/__mypa/sdk.js"></script>
+  </head>
+  <body>
+    <ul class="wc" id="list"></ul>
+    <script src="clock.js"></script>
+  </body>
+</html>

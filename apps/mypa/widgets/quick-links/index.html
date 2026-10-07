@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/__mypa/theme.css" />
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+      .ql {
+        flex: 1;
+        overflow: auto;
+        padding: 12px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        align-content: start;
+        gap: 6px;
+      }
+      .ql__item {
+        position: relative;
+        min-width: 0;
+        border-radius: var(--ds-radius-md);
+      }
+      .ql__item.is-dragging {
+        opacity: 0.4;
+      }
+      .ql__item.is-over {
+        box-shadow: 0 0 0 2px var(--ds-accent);
+      }
+      .ql__item.is-editing .ql__link {
+        border-color: var(--ds-accent);
+      }
+      .ql__link {
+        position: relative;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        padding: 8px 10px;
+        border: 1px solid var(--ds-border);
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-surface);
+        text-align: left;
+        cursor: pointer;
+        transition:
+          border-color 120ms ease,
+          background-color 120ms ease,
+          scale 120ms var(--ds-ease-out);
+      }
+      .ql__link:hover {
+        border-color: var(--ds-accent);
+        background: var(--ds-accent-soft);
+      }
+      .ql__link:active {
+        scale: 0.97;
+      }
+      .ql__mono {
+        flex: 0 0 auto;
+        width: 26px;
+        height: 26px;
+        display: grid;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--ds-accent);
+        color: var(--ds-accent-fg);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .ql__text {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        line-height: 1.3;
+      }
+      .ql__text b,
+      .ql__text small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .ql__text b {
+        font-weight: 500;
+      }
+      .ql__text small {
+        color: var(--ds-muted);
+        font-size: 11px;
+      }
+      .ql__tools {
+        position: absolute;
+        top: 3px;
+        right: 3px;
+        display: flex;
+        gap: 2px;
+        opacity: 0;
+        transition: opacity 120ms ease;
+      }
+      .ql__item:hover .ql__tools,
+      .ql__tools:focus-within {
+        opacity: 1;
+      }
+      .ql__tool {
+        display: grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border: 0;
+        border-radius: 5px;
+        background: var(--ds-surface);
+        color: var(--ds-muted);
+        cursor: pointer;
+      }
+      .ql__tool:hover {
+        color: var(--ds-fg);
+        background: var(--ds-hover);
+      }
+      .ql__tool--del:hover {
+        color: var(--ds-danger);
+      }
+      .ql__undo {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 60px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 36px;
+        padding: 4px 4px 4px 12px;
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-fg);
+        color: var(--ds-surface);
+        font-size: 12px;
+        box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+      }
+      .ql__undo span {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .ql__undo button {
+        display: grid;
+        place-items: center;
+        height: 28px;
+        min-width: 28px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .ql__undo button:hover {
+        background: rgb(255 255 255 / 0.16);
+      }
+      [hidden] {
+        display: none !important;
+      }
+      .ql__empty {
+        grid-column: 1 / -1;
+        margin: 24px 0;
+        text-align: center;
+      }
+      .ql__add {
+        display: flex;
+        gap: 6px;
+        padding: 8px 12px 12px;
+        border-top: 1px solid var(--ds-border);
+      }
+      .ql__add .field:first-child {
+        flex: 0 0 34%;
+      }
+      .ql__err {
+        margin: 0 12px 8px;
+        color: var(--ds-danger);
+        font-size: 11px;
+      }
+    </style>
+    <script src="/__mypa/sdk.js"></script>
+  </head>
+  <body>
+    <main class="ql" id="list"></main>
+    <p class="ql__err" id="err" hidden></p>
+    <form class="ql__add" id="form">
+      <input class="field" id="name" placeholder="Name" maxlength="40" aria-label="Link name" />
+      <input class="field" id="url" placeholder="https://" aria-label="Link address" />
+      <button class="btn ghost" id="cancel" type="button" hidden>Cancel</button>
+      <button class="btn" id="submit" type="submit">Add</button>
+    </form>
+    <div class="ql__undo" id="undo" role="status" hidden>
+      <span id="undo-label"></span>
+      <button type="button" id="undo-btn">Undo</button>
+      <button type="button" id="undo-close" aria-label="Dismiss"></button>
+    </div>
+    <script src="links.js"></script>
+  </body>
+</html>

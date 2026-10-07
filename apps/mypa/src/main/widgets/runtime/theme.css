@@ -1,0 +1,160 @@
+/* SPDX-License-Identifier: MIT
+ * (MIT, like packages/widget-sdk: widgets load this file, so it never affects how they are licensed.) */
+/* myPA widget theme, served at /__mypa/theme.css. Link it and your widget
+ * matches the app: tokens, type, controls. Font faces are prepended by the
+ * host. Values below are defaults; the host pushes live ones on connect. */
+
+:root {
+  color-scheme: light;
+  --ds-bg: #f2f2f2;
+  --ds-surface: #ffffff;
+  --ds-sunken: #f7f7f7;
+  --ds-fg: #000000;
+  --ds-fg-2: #3a3a3a;
+  --ds-muted: #666666;
+  --ds-faint: #8a8a8a;
+  --ds-border: #e5e5e5;
+  --ds-border-strong: #cccccc;
+  --ds-hover: #f0f0f0;
+  --ds-press: #e6e6e6;
+  --ds-accent: #234be9;
+  --ds-accent-hover: #1c3fcc;
+  --ds-accent-ink: #1f42d0;
+  --ds-accent-fg: #ffffff;
+  --ds-accent-soft: #eef2ff;
+  --ds-danger: #c42b1c;
+  --ds-radius-sm: 6px;
+  --ds-radius-md: 8px;
+  --ds-radius-lg: 12px;
+  --ds-font-sans: "Poppins", system-ui, "Segoe UI", sans-serif;
+  --ds-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--ds-surface);
+  color: var(--ds-fg);
+  font-family: var(--ds-font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--ds-accent);
+  color: var(--ds-accent-fg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 2px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ds-border-strong) transparent;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.muted {
+  color: var(--ds-muted);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Buttons: .btn (secondary), .btn.primary, .btn.ghost */
+.btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    scale 120ms var(--ds-ease-out);
+}
+
+.btn:hover {
+  border-color: var(--ds-fg);
+}
+
+.btn:active {
+  scale: 0.97;
+}
+
+.btn.primary {
+  background: var(--ds-accent);
+  border-color: var(--ds-accent);
+  color: var(--ds-accent-fg);
+}
+
+.btn.primary:hover {
+  background: var(--ds-accent-hover);
+}
+
+.btn.ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
+.btn.ghost:hover {
+  background: var(--ds-hover);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.field {
+  width: 100%;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  font-size: 13px;
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--ds-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ds-accent) 18%, transparent);
+}

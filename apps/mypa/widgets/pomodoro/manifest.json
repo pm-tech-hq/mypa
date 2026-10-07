@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "id": "mypa.pomodoro",
+  "name": "Focus timer",
+  "version": "1.0.1",
+  "summary": "Pomodoro sessions with breaks and a gentle nudge when time's up.",
+  "description": "Work in focused blocks with breaks in between, and a longer break after every few sessions. The ring shows how much of the session is left, the dots show how close the long break is, and a desktop notification tells you when to switch.\n\nPress Space to start or pause. Skip moves straight to the next phase. Lengths, the long-break rhythm and auto-start are in the widget's settings.",
+  "publisher": {
+    "id": "mypa",
+    "name": "myPA"
+  },
+  "icon": "timer",
+  "category": "focus",
+  "entry": "index.html",
+  "size": {
+    "w": 320,
+    "h": 340,
+    "minW": 260,
+    "minH": 280
+  },
+  "permissions": [
+    "notify"
+  ],
+  "settings": [
+    {
+      "key": "work",
+      "label": "Focus minutes",
+      "type": "number",
+      "default": 25,
+      "min": 5,
+      "max": 120
+    },
+    {
+      "key": "rest",
+      "label": "Short break minutes",
+      "type": "number",
+      "default": 5,
+      "min": 1,
+      "max": 60
+    },
+    {
+      "key": "longRest",
+      "label": "Long break minutes",
+      "type": "number",
+      "default": 15,
+      "min": 5,
+      "max": 90
+    },
+    {
+      "key": "longEvery",
+      "label": "Long break after this many sessions",
+      "type": "number",
+      "default": 4,
+      "min": 2,
+      "max": 12
+    },
+    {
+      "key": "autoStart",
+      "label": "Start the next phase automatically",
+      "type": "toggle",
+      "default": false
+    },
+    {
+      "key": "notify",
+      "label": "Notify when a session ends",
+      "type": "toggle",
+      "default": true
+    }
+  ],
+  "featured": true
+}

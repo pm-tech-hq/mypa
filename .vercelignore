@@ -1,0 +1,32 @@
+# Allowlist: upload only what the marketplace site (apps/market) needs to
+# install and build. Everything else — the desktop app, its private signing
+# keys (apps/mypa/.keys), local env files, review captures — stays local.
+/*
+!/package.json
+!/pnpm-lock.yaml
+!/pnpm-workspace.yaml
+!/turbo.json
+
+!/apps
+/apps/*
+!/apps/market
+
+# Other workspace apps: manifests only, so the lockfile stays consistent.
+!/apps/mypa
+/apps/mypa/*
+!/apps/mypa/package.json
+!/apps/web
+/apps/web/*
+!/apps/web/package.json
+!/apps/docs
+/apps/docs/*
+!/apps/docs/package.json
+
+!/packages
+
+**/node_modules
+**/.next
+**/.turbo
+**/.keys
+**/*.pem
+**/.env*

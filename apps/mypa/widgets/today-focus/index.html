@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/__mypa/theme.css" />
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+      .tf {
+        flex: 1;
+        overflow: auto;
+        padding: 14px 16px 8px;
+      }
+      .tf__head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+      .tf__label {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .tf__bar {
+        height: 3px;
+        margin-bottom: 12px;
+        border-radius: 3px;
+        background: var(--ds-hover);
+        overflow: hidden;
+      }
+      .tf__fill {
+        height: 100%;
+        background: var(--ds-accent);
+        transform-origin: left;
+        transition: transform 240ms var(--ds-ease-out);
+      }
+      .tf__list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .tf__item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 7px 0;
+      }
+      .tf__rank {
+        flex: 0 0 auto;
+        width: 20px;
+        height: 20px;
+        display: grid;
+        place-items: center;
+        border-radius: 6px;
+        background: var(--ds-accent-soft);
+        color: var(--ds-accent-ink);
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .tf__item:first-child .tf__rank {
+        background: var(--ds-accent);
+        color: var(--ds-accent-fg);
+      }
+      .tf__check {
+        flex: 0 0 auto;
+        position: relative;
+        width: 16px;
+        height: 16px;
+        margin-top: 2px;
+        padding: 0;
+        border: 1.5px solid var(--ds-border-strong);
+        border-radius: 4px;
+        background: var(--ds-surface);
+        cursor: pointer;
+        transition: background-color 120ms ease, border-color 120ms ease, scale 120ms var(--ds-ease-out);
+      }
+      .tf__check:hover {
+        border-color: var(--ds-accent);
+        background: var(--ds-accent-soft);
+      }
+      .tf__check:active {
+        scale: 0.88;
+      }
+      .tf__check.is-on {
+        background: var(--ds-accent);
+        border-color: var(--ds-accent);
+      }
+      .tf__check.is-on::after {
+        content: "";
+        position: absolute;
+        left: 4.25px;
+        top: 1.25px;
+        width: 4px;
+        height: 8px;
+        border: solid var(--ds-accent-fg);
+        border-width: 0 1.75px 1.75px 0;
+        transform: rotate(45deg);
+      }
+      .tf__body {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .tf__title {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .tf__item.is-done .tf__title {
+        color: var(--ds-muted);
+        text-decoration: line-through;
+        text-decoration-color: var(--ds-faint, #8a8a8a);
+      }
+      .tf__item.is-done .tf__rank {
+        opacity: 0.4;
+      }
+      .tf__due {
+        font-size: 11px;
+        color: var(--ds-muted);
+      }
+      .tf__due.is-soon {
+        color: #cf3b3b;
+        font-weight: 500;
+      }
+      .tf__prio-btn {
+        flex: 0 0 auto;
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border: 1px solid var(--ds-border-strong);
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-surface);
+        cursor: pointer;
+      }
+      .tf__prio-btn:hover {
+        border-color: var(--ds-fg);
+      }
+      .tf__prio-btn .tf__prio {
+        margin: 0;
+      }
+      .tf__prio-btn[data-i="high"] .tf__prio {
+        background: #cf3b3b;
+      }
+      .tf__prio-btn[data-i="medium"] .tf__prio {
+        background: #e08a1e;
+      }
+      .tf__prio-btn[data-i="low"] .tf__prio {
+        background: #9aa0a6;
+      }
+      .tf__prio {
+        flex: 0 0 auto;
+        width: 8px;
+        height: 8px;
+        margin-top: 6px;
+        border-radius: 2px;
+      }
+      .tf__prio[data-i="high"] {
+        background: #cf3b3b;
+      }
+      .tf__prio[data-i="medium"] {
+        background: #e08a1e;
+      }
+      .tf__prio[data-i="low"] {
+        background: #9aa0a6;
+      }
+      .tf__empty {
+        margin: 20px 0;
+        text-align: center;
+      }
+      .tf__add {
+        display: flex;
+        gap: 6px;
+        padding: 8px 16px 12px;
+        border-top: 1px solid var(--ds-border);
+      }
+    </style>
+    <script src="/__mypa/sdk.js"></script>
+  </head>
+  <body>
+    <main class="tf">
+      <div class="tf__head">
+        <span class="tf__label">Today</span>
+        <span class="muted num" id="count"></span>
+      </div>
+      <div class="tf__bar"><div class="tf__fill" id="fill" style="transform: scaleX(0)"></div></div>
+      <ol class="tf__list" id="list"></ol>
+      <p class="tf__empty muted" id="empty" hidden></p>
+    </main>
+    <form class="tf__add" id="form">
+      <input class="field" id="title" placeholder="Add a task for today" maxlength="200" aria-label="New task" />
+      <button class="tf__prio-btn" id="prio" type="button"><span class="tf__prio" data-i="high"></span></button>
+      <button class="btn" type="submit">Add</button>
+    </form>
+    <script src="focus.js"></script>
+  </body>
+</html>

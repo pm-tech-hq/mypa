@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/__mypa/theme.css" />
+    <style>
+      .cd {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 10px;
+        padding: 16px 18px;
+        overflow: auto;
+      }
+      .cd__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .cd__title {
+        margin: 0;
+        min-width: 0;
+        font-size: 14px;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .cd__edit {
+        flex: 0 0 auto;
+        height: 24px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: var(--ds-radius-sm);
+        background: transparent;
+        color: var(--ds-muted);
+        font-size: 11px;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 120ms ease;
+      }
+      .cd:hover .cd__edit,
+      .cd__edit:focus-visible {
+        opacity: 1;
+      }
+      .cd__edit:hover {
+        background: var(--ds-hover);
+        color: var(--ds-fg);
+      }
+      .cd__units {
+        display: flex;
+        gap: 18px;
+      }
+      .cd__unit {
+        display: flex;
+        flex-direction: column;
+      }
+      .cd__unit b {
+        font-size: clamp(24px, 12vmin, 40px);
+        font-weight: 600;
+        letter-spacing: -0.03em;
+        line-height: 1.05;
+      }
+      .cd__unit.is-accent b {
+        color: var(--ds-accent);
+      }
+      body[data-past="true"] .cd__unit.is-accent b {
+        color: var(--ds-fg);
+      }
+      .cd__unit span {
+        font-size: 11px;
+        color: var(--ds-muted);
+      }
+      .cd__when {
+        margin: 0;
+        font-size: 11px;
+      }
+      .cd__status {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ds-accent-ink);
+      }
+      .cd__setup {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .cd__setup p {
+        margin: 0;
+      }
+      .cd__form {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .cd__form label {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        font-size: 11px;
+        color: var(--ds-muted);
+      }
+      .cd__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 6px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+    <script src="/__mypa/sdk.js"></script>
+  </head>
+  <body>
+    <main class="cd">
+      <div class="cd__head">
+        <p class="cd__title" id="title">Countdown</p>
+      </div>
+      <div class="cd__view" id="view" hidden>
+        <p class="cd__status" id="status" role="status" hidden>It's here.</p>
+        <div class="cd__units num" id="units" role="timer" aria-live="off"></div>
+        <div class="cd__head">
+          <p class="cd__when muted" id="when"></p>
+          <button class="cd__edit" id="edit" type="button">Edit</button>
+        </div>
+      </div>
+      <div class="cd__setup" id="setup" hidden>
+        <p class="muted">What are you counting down to?</p>
+        <button class="btn primary" id="start" type="button">Pick a date</button>
+      </div>
+      <form class="cd__form" id="editor" hidden>
+        <label>
+          Name
+          <input class="field" id="in-title" maxlength="60" placeholder="Launch day" />
+        </label>
+        <label>
+          Date and time
+          <input class="field" id="in-date" type="datetime-local" required />
+        </label>
+        <div class="cd__actions">
+          <button class="btn ghost" id="cancel" type="button">Cancel</button>
+          <button class="btn primary" type="submit">Save</button>
+        </div>
+      </form>
+    </main>
+    <script src="countdown.js"></script>
+  </body>
+</html>

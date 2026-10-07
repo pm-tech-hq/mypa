@@ -1,0 +1,8 @@
+{
+  "mypa": {
+    "name": "myPA",
+    "verified": true,
+    "official": true,
+    "licenseKeyFile": "../.keys/registry-root.pub.pem"
+  }
+}

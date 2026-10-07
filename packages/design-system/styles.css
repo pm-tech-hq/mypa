@@ -1,0 +1,171 @@
+/* myPA — shared visual language
+ * Minimalist black & white on a #f2f2f2 ground, Poppins throughout.
+ * Import once at each app root:  import "@repo/design-system/styles.css";
+ * Keep the token values in sync with ./src/tokens.ts
+ */
+
+@import "@fontsource/poppins/300.css";
+@import "@fontsource/poppins/400.css";
+@import "@fontsource/poppins/500.css";
+@import "@fontsource/poppins/600.css";
+@import "@fontsource/poppins/700.css";
+
+:root {
+  color-scheme: light;
+
+  /* Core palette */
+  --ds-white: #ffffff;
+  --ds-black: #000000;
+  --ds-grey: #f2f2f2;
+
+  /* Semantic surfaces */
+  --ds-bg: var(--ds-grey);
+  --ds-surface: var(--ds-white);
+  --ds-sunken: #f7f7f7; /* inputs and wells sitting inside a white surface */
+  --ds-fg: var(--ds-black);
+  --ds-fg-2: #3a3a3a; /* secondary body text */
+  --ds-muted: #666666; /* meta text — 4.9:1 or better on every ground */
+  --ds-faint: #8a8a8a; /* icons, disabled, never body text */
+  --ds-border: #e5e5e5;
+  --ds-border-strong: #cccccc;
+  --ds-hover: #f0f0f0;
+  --ds-press: #e6e6e6;
+
+  /* Accent — ultramarine. The one interactive colour: primary actions, focus,
+     selection, checked state, the current tab, "today", progress. Never
+     decoration. Black stays the ink. */
+  --ds-accent: #234be9; /* 6.5:1 on white, 5.8:1 on the ground */
+  --ds-accent-hover: #1c3fcc;
+  --ds-accent-press: #1633b1;
+  --ds-accent-ink: #1f42d0; /* accent-coloured text on white or soft */
+  --ds-accent-fg: #ffffff;
+  --ds-accent-soft: #eef2ff; /* selected / current backgrounds */
+  --ds-accent-soft-2: #dde5ff;
+  --ds-accent-line: #a0bdff; /* focus halo, soft borders */
+
+  /* Priority marks — importance only, a small square, never a fill. */
+  --ds-priority-high: #cf3b3b;
+  --ds-priority-medium: #e08a1e;
+  --ds-priority-low: #9aa0a6;
+  --ds-danger: #c42b1c;
+
+  /* Typography — fixed scale, ~1.1 steps, for dense product UI */
+  --ds-font-sans: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  --ds-text-2xs: 11px; /* meta, counts, captions — the floor */
+  --ds-text-xs: 12px; /* secondary lines, labels */
+  --ds-text-sm: 13px; /* body, controls */
+  --ds-text-md: 14px; /* emphasised rows */
+  --ds-text-lg: 16px; /* in-widget headings */
+  --ds-text-xl: 20px; /* page-level headings */
+  --ds-weight-regular: 400;
+  --ds-weight-medium: 500;
+  --ds-weight-semibold: 600;
+
+  /* Radius — one rule: containers 12, controls 8, inline marks 4. No pills. */
+  --ds-radius-xs: 4px;
+  --ds-radius-sm: 6px;
+  --ds-radius-md: 8px;
+  --ds-radius-lg: 12px;
+
+  /* Control heights */
+  --ds-control-sm: 26px;
+  --ds-control-md: 30px;
+
+  /* Spacing scale */
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 24px;
+  --ds-space-6: 32px;
+
+  /* Elevation — layered, offset, soft */
+  --ds-shadow-1: 0 1px 1px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.05);
+  --ds-shadow-2: 0 1px 2px rgba(0, 0, 0, 0.05), 0 16px 36px -10px rgba(0, 0, 0, 0.2);
+  --ds-shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.06), 0 10px 28px -6px rgba(0, 0, 0, 0.18);
+
+  /* Motion — strong ease-out for anything responding to the user */
+  --ds-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ds-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ds-dur-fast: 120ms;
+  --ds-dur: 180ms;
+  --ds-dur-slow: 240ms;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--ds-bg);
+  color: var(--ds-fg);
+  font-family: var(--ds-font-sans);
+  font-weight: var(--ds-weight-regular);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  caret-color: var(--ds-accent);
+}
+
+::selection {
+  background: var(--ds-accent);
+  color: var(--ds-accent-fg);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+::placeholder {
+  color: var(--ds-muted);
+  opacity: 1;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 2px;
+}
+
+a {
+  color: inherit;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

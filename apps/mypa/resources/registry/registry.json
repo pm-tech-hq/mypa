@@ -1,0 +1,341 @@
+{
+  "index": {
+    "format": "mypa-registry@1",
+    "name": "myPA Official",
+    "generatedAt": "2026-10-05T00:33:00.208Z",
+    "publishers": {
+      "mypa": {
+        "name": "myPA",
+        "verified": true,
+        "official": true,
+        "licenseKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA1/H051Ur8fYC3GFnbXrN4wR5d7sR/rqRaf22zb7IES0=\n-----END PUBLIC KEY-----\n"
+      }
+    },
+    "widgets": [
+      {
+        "manifest": {
+          "schema": 1,
+          "id": "mypa.countdown",
+          "name": "Countdown",
+          "version": "1.0.1",
+          "summary": "Days, hours and minutes to the date that matters: a launch, a trip, a deadline.",
+          "description": "Name the moment and pick a date right in the widget: click Edit, or set them in the widget's settings. The countdown ticks live, shows seconds in the final hour, and switches to \"since\" once the moment has passed.",
+          "publisher": {
+            "id": "mypa",
+            "name": "myPA"
+          },
+          "icon": "hourglass",
+          "category": "planning",
+          "entry": "index.html",
+          "size": {
+            "w": 340,
+            "h": 220,
+            "minW": 240,
+            "minH": 140
+          },
+          "permissions": [],
+          "settings": [
+            {
+              "key": "title",
+              "label": "What are you counting down to?",
+              "type": "text",
+              "default": "Launch day",
+              "placeholder": "Launch day"
+            },
+            {
+              "key": "date",
+              "label": "Date and time (YYYY-MM-DD HH:MM)",
+              "type": "text",
+              "default": "",
+              "placeholder": "2026-12-31 09:00"
+            }
+          ]
+        },
+        "bundleUrl": "bundles/mypa.countdown-1.0.1.mypawidget",
+        "sha256": "6c8c4b9081551ef3c457ab8f42f9cb18579a09546e56861096e8b7e2d55a271d",
+        "bytes": 12079,
+        "updatedAt": "2026-10-05T00:33:00.104Z"
+      },
+      {
+        "manifest": {
+          "schema": 1,
+          "id": "mypa.habits",
+          "name": "Habits",
+          "version": "1.0.1",
+          "summary": "Tick off daily habits and watch the streaks build across the week.",
+          "description": "Add the habits you want to keep, then tick each day you do them. Every habit shows its recent days and current streak, so a gap is easy to spot; widen the widget to see up to three weeks. Hover a habit for its best streak and how often you kept it in the last 30 days, or click it to rename.\n\nEverything stays in this widget; nothing is shared.",
+          "publisher": {
+            "id": "mypa",
+            "name": "myPA"
+          },
+          "icon": "repeat",
+          "category": "tracking",
+          "entry": "index.html",
+          "size": {
+            "w": 420,
+            "h": 320,
+            "minW": 320,
+            "minH": 200
+          },
+          "permissions": [],
+          "featured": true
+        },
+        "bundleUrl": "bundles/mypa.habits-1.0.1.mypawidget",
+        "sha256": "435f6e046773767c01359f120c85456363c2e55d50f99ab6033506fae06cfff9",
+        "bytes": 19401,
+        "updatedAt": "2026-10-05T00:33:00.129Z",
+        "featured": true
+      },
+      {
+        "manifest": {
+          "schema": 1,
+          "id": "mypa.pomodoro",
+          "name": "Focus timer",
+          "version": "1.0.1",
+          "summary": "Pomodoro sessions with breaks and a gentle nudge when time's up.",
+          "description": "Work in focused blocks with breaks in between, and a longer break after every few sessions. The ring shows how much of the session is left, the dots show how close the long break is, and a desktop notification tells you when to switch.\n\nPress Space to start or pause. Skip moves straight to the next phase. Lengths, the long-break rhythm and auto-start are in the widget's settings.",
+          "publisher": {
+            "id": "mypa",
+            "name": "myPA"
+          },
+          "icon": "timer",
+          "category": "focus",
+          "entry": "index.html",
+          "size": {
+            "w": 320,
+            "h": 340,
+            "minW": 260,
+            "minH": 280
+          },
+          "permissions": [
+            "notify"
+          ],
+          "settings": [
+            {
+              "key": "work",
+              "label": "Focus minutes",
+              "type": "number",
+              "default": 25,
+              "min": 5,
+              "max": 120
+            },
+            {
+              "key": "rest",
+              "label": "Short break minutes",
+              "type": "number",
+              "default": 5,
+              "min": 1,
+              "max": 60
+            },
+            {
+              "key": "longRest",
+              "label": "Long break minutes",
+              "type": "number",
+              "default": 15,
+              "min": 5,
+              "max": 90
+            },
+            {
+              "key": "longEvery",
+              "label": "Long break after this many sessions",
+              "type": "number",
+              "default": 4,
+              "min": 2,
+              "max": 12
+            },
+            {
+              "key": "autoStart",
+              "label": "Start the next phase automatically",
+              "type": "toggle",
+              "default": false
+            },
+            {
+              "key": "notify",
+              "label": "Notify when a session ends",
+              "type": "toggle",
+              "default": true
+            }
+          ],
+          "featured": true
+        },
+        "bundleUrl": "bundles/mypa.pomodoro-1.0.1.mypawidget",
+        "sha256": "1736afc7b24a43a95358a21b62f3437dcf4ec5302c11215e4ab4f7c1d3860e26",
+        "bytes": 14370,
+        "updatedAt": "2026-10-05T00:33:00.140Z",
+        "featured": true
+      },
+      {
+        "manifest": {
+          "schema": 1,
+          "id": "mypa.quick-links",
+          "name": "Quick links",
+          "version": "1.0.1",
+          "summary": "The sites and tools you open every day, one click away.",
+          "description": "Pin the dashboards, docs and tools you reach for most. Each link opens in your browser. Add a name and a link and it's there; drag to reorder, and hover a link to edit or remove it.",
+          "publisher": {
+            "id": "mypa",
+            "name": "myPA"
+          },
+          "icon": "link",
+          "category": "productivity",
+          "entry": "index.html",
+          "size": {
+            "w": 360,
+            "h": 260,
+            "minW": 240,
+            "minH": 160
+          },
+          "permissions": []
+        },
+        "bundleUrl": "bundles/mypa.quick-links-1.0.1.mypawidget",
+        "sha256": "171e17fc305dd3a6eb283de66db29a2cd2563862121c090eef3d8b62af1c268c",
+        "bytes": 15164,
+        "updatedAt": "2026-10-05T00:33:00.154Z"
+      },
+      {
+        "manifest": {
+          "schema": 1,
+          "id": "mypa.today-focus",
+          "name": "Today's focus",
+          "version": "1.0.1",
+          "summary": "Your three most important open tasks for today, and nothing else.",
+          "description": "A calm view of what matters most right now: the highest-importance tasks still open in Today, with their deadlines, plus how much of the day is done. Tick a task off right here, or add one and choose how important it is; both land in your To-do list.\n\nNeeds permission to read your tasks, add new ones and tick them off.",
+          "publisher": {
+            "id": "mypa",
+            "name": "myPA"
+          },
+          "icon": "target",
+          "category": "focus",
+          "entry": "index.html",
+          "size": {
+            "w": 360,
+            "h": 280,
+            "minW": 280,
+            "minH": 200
+          },
+          "permissions": [
+            "tasks:read",
+            "tasks:write"
+          ],
+          "settings": [
+            {
+              "key": "count",
+              "label": "How many tasks to show",
+              "type": "number",
+              "default": 3,
+              "min": 1,
+              "max": 8
+            }
+          ],
+          "featured": true
+        },
+        "bundleUrl": "bundles/mypa.today-focus-1.0.1.mypawidget",
+        "sha256": "19e9dda87228d8bc4b8051e664d66986bf9334ab4d4c965ea1c4855725a26bc1",
+        "bytes": 13984,
+        "updatedAt": "2026-10-05T00:33:00.166Z",
+        "featured": true
+      },
+      {
+        "manifest": {
+          "schema": 1,
+          "id": "mypa.weather",
+          "name": "Weather",
+          "version": "1.0.1",
+          "summary": "Now, the next few hours and the next few days for your city, no account needed.",
+          "description": "Current conditions, today's high, low, chance of rain and wind, the next six hours, and a four-day outlook, from Open-Meteo's free forecast service. Set your city in the widget's settings.\n\nThis widget connects to Open-Meteo to look up your city and fetch the forecast. Nothing else leaves your computer.",
+          "publisher": {
+            "id": "mypa",
+            "name": "myPA"
+          },
+          "icon": "cloud-sun",
+          "category": "information",
+          "entry": "index.html",
+          "size": {
+            "w": 360,
+            "h": 360,
+            "minW": 260,
+            "minH": 180
+          },
+          "permissions": [
+            "net:geocoding-api.open-meteo.com",
+            "net:api.open-meteo.com"
+          ],
+          "settings": [
+            {
+              "key": "city",
+              "label": "City",
+              "type": "text",
+              "default": "London",
+              "placeholder": "London"
+            },
+            {
+              "key": "units",
+              "label": "Units",
+              "type": "select",
+              "default": "celsius",
+              "options": [
+                {
+                  "value": "celsius",
+                  "label": "Celsius"
+                },
+                {
+                  "value": "fahrenheit",
+                  "label": "Fahrenheit"
+                }
+              ]
+            }
+          ],
+          "homepage": "https://open-meteo.com/"
+        },
+        "bundleUrl": "bundles/mypa.weather-1.0.1.mypawidget",
+        "sha256": "854401dd9fe6c8a4fcc9ffe950646d7bc4300fb5452822564f7c04db72812cfe",
+        "bytes": 18872,
+        "updatedAt": "2026-10-05T00:33:00.194Z"
+      },
+      {
+        "manifest": {
+          "schema": 1,
+          "id": "mypa.world-clock",
+          "name": "World clock",
+          "version": "1.0.1",
+          "summary": "The time where your team, clients and family are, at a glance.",
+          "description": "List the places you care about in the widget's settings, separated by commas. A city name is usually enough (Tokyo, Paris, Toronto); for anything else use a time zone like America/Sao_Paulo, or name it yourself: Mum=Europe/Lisbon.\n\nEach clock shows how far ahead or behind you it is, and whether it's working hours or night there, so you know when to call.",
+          "publisher": {
+            "id": "mypa",
+            "name": "myPA"
+          },
+          "icon": "globe",
+          "category": "information",
+          "entry": "index.html",
+          "size": {
+            "w": 340,
+            "h": 240,
+            "minW": 240,
+            "minH": 140
+          },
+          "permissions": [],
+          "settings": [
+            {
+              "key": "zones",
+              "label": "Places (cities or time zones, comma separated)",
+              "type": "text",
+              "default": "Lagos=Africa/Lagos, London=Europe/London, New York=America/New_York, Singapore=Asia/Singapore"
+            },
+            {
+              "key": "hour12",
+              "label": "12-hour clock",
+              "type": "toggle",
+              "default": false
+            }
+          ]
+        },
+        "bundleUrl": "bundles/mypa.world-clock-1.0.1.mypawidget",
+        "sha256": "ae837ce64c25f20c7f85ea45a5f547aff4eff18b11dd5da7a56cb6278a76f8a7",
+        "bytes": 8375,
+        "updatedAt": "2026-10-05T00:33:00.208Z"
+      }
+    ]
+  },
+  "signature": "CIktF4taTYYCsZLvKZzC4ozlAjnY58acC4m1yC0JVLvoVkEvFvpF2DnQi/XX002IB6Z7de//+7I/tVOmbIXDBw==",
+  "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA1/H051Ur8fYC3GFnbXrN4wR5d7sR/rqRaf22zb7IES0=\n-----END PUBLIC KEY-----\n"
+}

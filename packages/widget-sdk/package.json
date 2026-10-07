@@ -1,0 +1,26 @@
+{
+  "name": "@repo/widget-sdk",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "description": "Build, pack, sign and publish custom widgets for myPA.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "mypa-widget": "./bin/mypa-widget.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "26.4.1",
+    "eslint": "10.9.1",
+    "typescript": "7.0.2",
+    "globals": "17.12.0"
+  }
+}

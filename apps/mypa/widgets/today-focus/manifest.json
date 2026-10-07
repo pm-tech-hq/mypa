@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "id": "mypa.today-focus",
+  "name": "Today's focus",
+  "version": "1.0.1",
+  "summary": "Your three most important open tasks for today, and nothing else.",
+  "description": "A calm view of what matters most right now: the highest-importance tasks still open in Today, with their deadlines, plus how much of the day is done. Tick a task off right here, or add one and choose how important it is; both land in your To-do list.\n\nNeeds permission to read your tasks, add new ones and tick them off.",
+  "publisher": {
+    "id": "mypa",
+    "name": "myPA"
+  },
+  "icon": "target",
+  "category": "focus",
+  "entry": "index.html",
+  "size": {
+    "w": 360,
+    "h": 280,
+    "minW": 280,
+    "minH": 200
+  },
+  "permissions": [
+    "tasks:read",
+    "tasks:write"
+  ],
+  "settings": [
+    {
+      "key": "count",
+      "label": "How many tasks to show",
+      "type": "number",
+      "default": 3,
+      "min": 1,
+      "max": 8
+    }
+  ],
+  "featured": true
+}

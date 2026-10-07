@@ -1,0 +1,12 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "outputs": ["out/**"],
+      "env": ["ELECTRON_RENDERER_URL"]
+    },
+    "dev": {
+      "env": ["ELECTRON_RENDERER_URL"]
+    }
+  }
+}

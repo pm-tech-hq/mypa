@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/__mypa/theme.css" />
+    <style>
+      .pomo {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 12px 16px;
+      }
+      .pomo__phase {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ds-muted);
+      }
+      .pomo__phase[data-phase="focus"] {
+        color: var(--ds-accent-ink);
+      }
+      /* The dial takes whatever height is left after the controls. */
+      .pomo__dial {
+        position: relative;
+        width: max(96px, min(62vw, 180px, calc(100vh - 176px)));
+        aspect-ratio: 1;
+        container-type: size;
+      }
+      .pomo__dial svg {
+        width: 100%;
+        height: 100%;
+        rotate: -90deg;
+      }
+      .pomo__track {
+        fill: none;
+        stroke: var(--ds-hover);
+        stroke-width: 6;
+      }
+      .pomo__arc {
+        fill: none;
+        stroke: var(--ds-accent);
+        stroke-width: 6;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 1s linear;
+      }
+      .pomo__arc[data-phase="rest"],
+      .pomo__arc[data-phase="long"] {
+        stroke: var(--ds-fg);
+      }
+      .pomo__time {
+        transition: opacity 200ms ease;
+      }
+      body[data-running="false"] .pomo__time {
+        opacity: 0.72;
+      }
+      .pomo__dots {
+        display: flex;
+        gap: 6px;
+      }
+      .pomo__dots span {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--ds-border-strong);
+        transition: background-color 200ms ease, scale 200ms var(--ds-ease-out);
+      }
+      .pomo__dots span.on {
+        background: var(--ds-accent);
+        scale: 1.15;
+      }
+      .pomo__skip {
+        height: 24px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: var(--ds-radius-sm);
+        background: transparent;
+        color: var(--ds-muted);
+        font-size: 11px;
+        cursor: pointer;
+      }
+      .pomo__skip:hover {
+        background: var(--ds-hover);
+        color: var(--ds-fg);
+      }
+      .pomo__time {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 22cqi;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+      }
+      .pomo__actions {
+        display: flex;
+        gap: 8px;
+      }
+      .pomo__count {
+        font-size: 11px;
+      }
+      html,
+      body {
+        container-type: size;
+      }
+      .pomo__side {
+        display: contents;
+      }
+      /* Tall widgets stack: phase label, dial, then the controls. */
+      .pomo__phase {
+        order: 0;
+      }
+      .pomo__dial {
+        order: 1;
+      }
+      .pomo__dots,
+      .pomo__actions,
+      .pomo__foot {
+        order: 2;
+      }
+      /* Short widgets: dial on the left, controls stacked beside it. */
+      @container (max-height: 300px) {
+        .pomo {
+          flex-direction: row;
+          gap: 18px;
+        }
+        .pomo__dial {
+          order: -1;
+          width: max(96px, min(46vw, calc(100vh - 32px)));
+        }
+        .pomo__side {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+        .pomo__foot {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0;
+        }
+        .pomo__skip {
+          margin-left: -8px;
+        }
+      }
+      .pomo__foot {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+    </style>
+    <script src="/__mypa/sdk.js"></script>
+  </head>
+  <body>
+    <main class="pomo">
+      <div class="pomo__dial">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="pomo__track" cx="50" cy="50" r="44" />
+          <circle class="pomo__arc" id="arc" cx="50" cy="50" r="44" data-phase="focus" />
+        </svg>
+        <div class="pomo__time num" id="time" role="timer" aria-live="off">25:00</div>
+      </div>
+      <div class="pomo__side">
+      <span class="pomo__phase" id="phase" data-phase="focus">Focus</span>
+      <div class="pomo__dots" id="dots" role="img"></div>
+      <div class="pomo__actions">
+        <button class="btn ghost" id="reset" type="button">Reset</button>
+        <button class="btn primary" id="toggle" type="button">Start</button>
+      </div>
+      <div class="pomo__foot">
+        <span class="pomo__count muted num" id="count"></span>
+        <button class="pomo__skip" id="skip" type="button">Skip to break</button>
+      </div>
+      </div>
+    </main>
+    <script src="pomodoro.js"></script>
+  </body>
+</html>

@@ -1,0 +1,172 @@
+/* myPA — page sidebar + icon picker. */
+
+.pg-body {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+
+.pg-sidebar {
+  flex: 0 0 auto;
+  width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  background: var(--ds-surface);
+  border-right: 1px solid var(--ds-border);
+  -webkit-app-region: no-drag;
+}
+
+.pg-sidebar__item {
+  position: relative;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  /* Each page's icon carries its own colour, so the rail scans at a glance. */
+  color: color-mix(in srgb, var(--page, var(--ds-muted)) 88%, var(--ds-black));
+  border-radius: var(--ds-radius-md);
+  cursor: pointer;
+  transition:
+    background-color var(--ds-dur-fast) ease,
+    color var(--ds-dur-fast) ease,
+    scale var(--ds-dur-fast) var(--ds-ease-out);
+}
+
+.pg-sidebar__item:hover {
+  background: color-mix(in srgb, var(--page, var(--ds-fg)) 10%, var(--ds-surface));
+}
+
+.pg-sidebar__item:active {
+  scale: 0.94;
+}
+
+.pg-sidebar__item.is-active {
+  background: var(--page, var(--ds-black));
+  color: var(--ds-white);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--ds-black) 12%, transparent),
+    0 4px 12px -4px color-mix(in srgb, var(--page, var(--ds-black)) 60%, transparent);
+}
+
+/* A short bar on the rail marks the current page, like a tab's underline. */
+.pg-sidebar__item.is-active::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--page, var(--ds-black));
+}
+
+.pg-sidebar__add {
+  margin-top: 6px;
+  color: var(--ds-faint);
+  border: 1px dashed var(--ds-border-strong);
+}
+
+.pg-sidebar__add:hover {
+  border-color: var(--ds-accent);
+  border-style: solid;
+  color: var(--ds-accent-ink);
+  background: var(--ds-accent-soft);
+}
+
+.pg-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  line-height: 1.35;
+}
+
+.pg-tip__hint {
+  font-size: var(--ds-text-2xs);
+  opacity: 0.65;
+}
+
+/* ---- icon picker (PageDialog) ------------------------------------------ */
+.pg-icons {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+}
+
+.pg-icons__opt {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  appearance: none;
+  border: 1px solid transparent;
+  background: var(--ds-sunken);
+  color: var(--ds-fg-2);
+  border-radius: var(--ds-radius-md);
+  cursor: pointer;
+  transition:
+    background-color var(--ds-dur-fast) ease,
+    color var(--ds-dur-fast) ease,
+    scale var(--ds-dur-fast) var(--ds-ease-out);
+}
+
+.pg-icons__opt:hover {
+  background: var(--ds-hover);
+  border-color: var(--ds-border-strong);
+  color: var(--ds-fg);
+}
+
+.pg-icons__opt:active {
+  scale: 0.92;
+}
+
+/* The picker previews the page's own colour. */
+.pg-icons__opt.is-active {
+  background: var(--page, var(--ds-accent));
+  border-color: var(--page, var(--ds-accent));
+  color: var(--ds-white);
+}
+
+/* ---- colour swatches (PageDialog) -------------------------------------- */
+.pg-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pg-swatch {
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ds-radius-md);
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ds-black) 12%, transparent);
+  cursor: pointer;
+  transition:
+    scale var(--ds-dur-fast) var(--ds-ease-out),
+    box-shadow var(--ds-dur-fast) ease;
+}
+
+.pg-swatch:hover {
+  scale: 1.08;
+}
+
+.pg-swatch:active {
+  scale: 0.94;
+}
+
+.pg-swatch.is-active {
+  box-shadow:
+    0 0 0 2px var(--ds-surface),
+    0 0 0 4px var(--swatch);
+}

@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "id": "mypa.quick-links",
+  "name": "Quick links",
+  "version": "1.0.1",
+  "summary": "The sites and tools you open every day, one click away.",
+  "description": "Pin the dashboards, docs and tools you reach for most. Each link opens in your browser. Add a name and a link and it's there; drag to reorder, and hover a link to edit or remove it.",
+  "publisher": {
+    "id": "mypa",
+    "name": "myPA"
+  },
+  "icon": "link",
+  "category": "productivity",
+  "entry": "index.html",
+  "size": {
+    "w": 360,
+    "h": 260,
+    "minW": 240,
+    "minH": 160
+  },
+  "permissions": []
+}

@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "id": "mypa.habits",
+  "name": "Habits",
+  "version": "1.0.1",
+  "summary": "Tick off daily habits and watch the streaks build across the week.",
+  "description": "Add the habits you want to keep, then tick each day you do them. Every habit shows its recent days and current streak, so a gap is easy to spot; widen the widget to see up to three weeks. Hover a habit for its best streak and how often you kept it in the last 30 days, or click it to rename.\n\nEverything stays in this widget; nothing is shared.",
+  "publisher": {
+    "id": "mypa",
+    "name": "myPA"
+  },
+  "icon": "repeat",
+  "category": "tracking",
+  "entry": "index.html",
+  "size": {
+    "w": 420,
+    "h": 320,
+    "minW": 320,
+    "minH": 200
+  },
+  "permissions": [],
+  "featured": true
+}

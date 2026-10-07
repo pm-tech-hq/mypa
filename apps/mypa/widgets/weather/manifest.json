@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "id": "mypa.weather",
+  "name": "Weather",
+  "version": "1.0.1",
+  "summary": "Now, the next few hours and the next few days for your city, no account needed.",
+  "description": "Current conditions, today's high, low, chance of rain and wind, the next six hours, and a four-day outlook, from Open-Meteo's free forecast service. Set your city in the widget's settings.\n\nThis widget connects to Open-Meteo to look up your city and fetch the forecast. Nothing else leaves your computer.",
+  "publisher": {
+    "id": "mypa",
+    "name": "myPA"
+  },
+  "icon": "cloud-sun",
+  "category": "information",
+  "entry": "index.html",
+  "size": {
+    "w": 360,
+    "h": 360,
+    "minW": 260,
+    "minH": 180
+  },
+  "permissions": [
+    "net:geocoding-api.open-meteo.com",
+    "net:api.open-meteo.com"
+  ],
+  "settings": [
+    {
+      "key": "city",
+      "label": "City",
+      "type": "text",
+      "default": "London",
+      "placeholder": "London"
+    },
+    {
+      "key": "units",
+      "label": "Units",
+      "type": "select",
+      "default": "celsius",
+      "options": [
+        {
+          "value": "celsius",
+          "label": "Celsius"
+        },
+        {
+          "value": "fahrenheit",
+          "label": "Fahrenheit"
+        }
+      ]
+    }
+  ],
+  "homepage": "https://open-meteo.com/"
+}

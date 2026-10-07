@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "id": "mypa.world-clock",
+  "name": "World clock",
+  "version": "1.0.1",
+  "summary": "The time where your team, clients and family are, at a glance.",
+  "description": "List the places you care about in the widget's settings, separated by commas. A city name is usually enough (Tokyo, Paris, Toronto); for anything else use a time zone like America/Sao_Paulo, or name it yourself: Mum=Europe/Lisbon.\n\nEach clock shows how far ahead or behind you it is, and whether it's working hours or night there, so you know when to call.",
+  "publisher": {
+    "id": "mypa",
+    "name": "myPA"
+  },
+  "icon": "globe",
+  "category": "information",
+  "entry": "index.html",
+  "size": {
+    "w": 340,
+    "h": 240,
+    "minW": 240,
+    "minH": 140
+  },
+  "permissions": [],
+  "settings": [
+    {
+      "key": "zones",
+      "label": "Places (cities or time zones, comma separated)",
+      "type": "text",
+      "default": "Lagos=Africa/Lagos, London=Europe/London, New York=America/New_York, Singapore=Asia/Singapore"
+    },
+    {
+      "key": "hour12",
+      "label": "12-hour clock",
+      "type": "toggle",
+      "default": false
+    }
+  ]
+}

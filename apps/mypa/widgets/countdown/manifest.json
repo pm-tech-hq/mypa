@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "id": "mypa.countdown",
+  "name": "Countdown",
+  "version": "1.0.1",
+  "summary": "Days, hours and minutes to the date that matters: a launch, a trip, a deadline.",
+  "description": "Name the moment and pick a date right in the widget: click Edit, or set them in the widget's settings. The countdown ticks live, shows seconds in the final hour, and switches to \"since\" once the moment has passed.",
+  "publisher": {
+    "id": "mypa",
+    "name": "myPA"
+  },
+  "icon": "hourglass",
+  "category": "planning",
+  "entry": "index.html",
+  "size": {
+    "w": 340,
+    "h": 220,
+    "minW": 240,
+    "minH": 140
+  },
+  "permissions": [],
+  "settings": [
+    {
+      "key": "title",
+      "label": "What are you counting down to?",
+      "type": "text",
+      "default": "Launch day",
+      "placeholder": "Launch day"
+    },
+    {
+      "key": "date",
+      "label": "Date and time (YYYY-MM-DD HH:MM)",
+      "type": "text",
+      "default": "",
+      "placeholder": "2026-12-31 09:00"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "id": "me.my-widget",
+  "name": "My widget",
+  "version": "0.1.0",
+  "summary": "A starting point: a counter that remembers its value.",
+  "description": "Replace this with what your widget does.",
+  "publisher": { "id": "me", "name": "Me" },
+  "icon": "sparkles",
+  "category": "productivity",
+  "entry": "index.html",
+  "size": { "w": 320, "h": 240, "minW": 240, "minH": 160 },
+  "permissions": [],
+  "settings": [
+    { "key": "label", "label": "Label", "type": "text", "default": "Clicks" },
+    { "key": "step", "label": "Step", "type": "number", "default": 1, "min": 1, "max": 100 }
+  ]
+}

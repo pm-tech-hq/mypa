@@ -1,0 +1,535 @@
+/* myPA — Calendar widget. Mirrors todo.css's visual language (own classes so
+ * the widget works with no other widget on the board). */
+
+.cal {
+  container: cal / inline-size;
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px 14px;
+  font-size: var(--ds-text-sm);
+}
+
+.cal__head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.cal__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.cal__empty {
+  margin: 6px 0 0;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+}
+
+.cal__day-group + .cal__day-group {
+  margin-top: 16px;
+}
+
+.cal__day-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--ds-border);
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-fg);
+}
+
+.cal__day-count {
+  font-size: var(--ds-text-2xs);
+  font-weight: var(--ds-weight-regular);
+  color: var(--ds-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cal__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cal__row {
+  margin: 0 -6px;
+  border-radius: var(--ds-radius-md);
+  transition: background-color var(--ds-dur-fast) ease;
+}
+
+.cal__row-head {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 6px;
+  appearance: none;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cal__row-head:focus-visible {
+  outline-offset: -2px;
+}
+
+.cal__row:hover,
+.cal__row--open {
+  background: var(--ds-sunken);
+}
+
+.cal__row--now,
+.cal__row--now:hover {
+  background: var(--ds-accent-soft);
+}
+
+.cal__row-time {
+  flex: 0 0 auto;
+  width: 104px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+  line-height: 1.4;
+}
+
+.cal__row-clock {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* "in 25m" / "ends in 20m": the glanceable part, in the accent's ink. */
+.cal__row-rel {
+  font-size: var(--ds-text-2xs);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-accent-ink);
+}
+
+.cal__row--now .cal__row-time {
+  color: var(--ds-accent-ink);
+  font-weight: var(--ds-weight-medium);
+}
+
+.cal__row-now-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ds-accent);
+  animation: now-pulse 2s var(--ds-ease-in-out) infinite;
+}
+
+/* The one ambient motion in the app: the event happening right now breathes. */
+@keyframes now-pulse {
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ds-accent) 18%, transparent);
+  }
+}
+
+.cal__row-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cal__row-title {
+  color: var(--ds-fg);
+  font-weight: var(--ds-weight-medium);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+.cal__row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--ds-text-2xs);
+  color: var(--ds-muted);
+  overflow: hidden;
+}
+
+.cal__row-source {
+  flex: 0 0 auto;
+  color: var(--ds-fg-2);
+  font-weight: var(--ds-weight-medium);
+  text-transform: capitalize;
+}
+
+.cal__row-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal__row-location svg {
+  flex: 0 0 auto;
+  opacity: 0.7;
+}
+
+/* details: indented to the title column */
+.cal__details {
+  padding: 0 6px 10px calc(6px + 104px + 10px);
+  font-size: var(--ds-text-xs);
+  color: var(--ds-fg-2);
+  animation: cal-reveal var(--ds-dur) var(--ds-ease-out);
+}
+
+@keyframes cal-reveal {
+  from {
+    opacity: 0;
+    translate: 0 -3px;
+  }
+}
+
+.cal__details p {
+  margin: 0 0 4px;
+}
+
+.cal__details-when {
+  color: var(--ds-muted);
+}
+
+.cal__details-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cal__details-line svg {
+  flex: 0 0 auto;
+  color: var(--ds-muted);
+}
+
+.cal__details-notes {
+  max-width: 60ch;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cal__details-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.cal__details-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: var(--ds-control-sm);
+  padding: 0 10px;
+  appearance: none;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  color: var(--ds-fg-2);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color var(--ds-dur-fast) ease,
+    color var(--ds-dur-fast) ease;
+}
+
+.cal__details-actions button:hover {
+  color: var(--ds-fg);
+  border-color: var(--ds-fg);
+}
+
+.cal__details-actions .cal__details-delete {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ds-muted);
+}
+
+.cal__details-actions .cal__details-delete:hover {
+  color: var(--ds-danger);
+  border-color: transparent;
+  background: var(--ds-hover);
+}
+
+.cal__details-source {
+  color: var(--ds-muted);
+}
+
+/* narrow widgets: details align with the row instead of the title column */
+@container cal (max-width: 360px) {
+  .cal__details {
+    padding-left: 6px;
+  }
+}
+
+/* ---- sync notice ------------------------------------------------------- */
+.cal__notice {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 10px;
+  padding: 6px 6px 6px 10px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-sunken);
+  font-size: var(--ds-text-xs);
+  color: var(--ds-fg-2);
+}
+
+.cal__notice svg {
+  flex: 0 0 auto;
+  color: var(--ds-danger);
+}
+
+.cal__notice .cal__spin {
+  color: var(--ds-muted);
+  animation: cal-spin 1s linear infinite;
+}
+
+@keyframes cal-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.cal__notice-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal__notice-action,
+.cal__link {
+  flex: 0 0 auto;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-accent-ink);
+  cursor: pointer;
+  border-radius: var(--ds-radius-sm);
+}
+
+.cal__notice-action {
+  height: 24px;
+  padding: 0 8px;
+}
+
+.cal__notice-action:hover,
+.cal__link:hover {
+  background: var(--ds-accent-soft);
+}
+
+.cal__link {
+  margin-top: 8px;
+  padding: 4px 8px;
+  font-size: var(--ds-text-xs);
+}
+
+.cal__day-add {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: -4px -4px -4px 0;
+  appearance: none;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-muted);
+  cursor: pointer;
+}
+
+.cal__day-add:hover {
+  color: var(--ds-fg);
+  background: var(--ds-press);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cal__notice .cal__spin,
+  .cal__details {
+    animation: none;
+  }
+}
+
+/* ---- month view: calendar + selected-day detail side by side once there's
+   room; a container query (not a media query) since it's the *widget*, not
+   the window, that gets resized. ------------------------------------------ */
+.cal__month-wrap {
+  container-type: inline-size;
+  container-name: cal-month;
+}
+
+.cal__month {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cal__month-calendar {
+  flex: 0 0 auto;
+}
+
+.cal__month-detail {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@container cal-month (min-width: 460px) {
+  .cal__month {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .cal__month-detail {
+    padding-left: 16px;
+    border-left: 1px solid var(--ds-border);
+  }
+
+  .cal__grid {
+    --cell-size: 2.5rem;
+  }
+}
+
+/* stacked (narrow) month view: the grid fills the widget's width */
+.cal__grid {
+  --cell-size: clamp(2rem, calc((100cqi - 4px) / 7), 3rem);
+  padding: 0;
+  background: transparent;
+}
+
+/* small "something's on" dot under days that have an event: accent on a
+   plain day, white on the selected (accent-filled) day. */
+.cal-day-dot {
+  position: relative;
+}
+
+.cal-day-dot::after {
+  content: "";
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  translate: -50% 0;
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  background: var(--ds-accent);
+  pointer-events: none;
+}
+
+.cal-day-dot[data-selected="true"]::after {
+  background: var(--ds-accent-fg);
+}
+
+/* ---- connected-calendars settings panel ------------------------------ */
+.cal-accounts {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  overflow: hidden;
+}
+
+.cal-accounts__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 10px;
+  background: var(--ds-surface);
+}
+
+.cal-accounts__row + .cal-accounts__row {
+  border-top: 1px solid var(--ds-border);
+}
+
+.cal-accounts__info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cal-accounts__label {
+  font-size: var(--ds-text-sm);
+  color: var(--ds-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-accounts__meta {
+  font-size: var(--ds-text-2xs);
+  color: var(--ds-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-accounts__actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+}
+
+.cal-accounts__add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.cal-accounts__form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: var(--ds-sunken);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+}
+
+.cal-accounts__form a {
+  color: var(--ds-fg);
+}
+
+.cal__row--now .cal__row-rel {
+  padding-left: 11px;
+}

@@ -1,0 +1,1070 @@
+/* To-do widget. The only colour is the small importance square and the
+ * countdown once a task is under a day. */
+
+.todo {
+  container: todo / inline-size;
+  --row-pad: 7px;
+  --fs: var(--ds-text-sm);
+  --gap: 10px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-size: var(--ds-text-sm);
+  line-height: 1.45;
+}
+
+.todo--compact {
+  --row-pad: 4px;
+  --gap: 8px;
+  line-height: 1.35;
+}
+
+/* ---- header ------------------------------------------------------- */
+.todo__head {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  box-shadow: inset 0 -1px 0 var(--ds-border);
+}
+
+.todo__count {
+  font-size: var(--ds-text-2xs);
+  color: var(--ds-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Today's progress doubles as the header's bottom rule. */
+.todo__bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  overflow: hidden;
+}
+
+.todo__bar-fill {
+  width: 100%;
+  height: 100%;
+  background: var(--ds-accent);
+  transform-origin: left center;
+  transition: transform var(--ds-dur-slow) var(--ds-ease-out);
+}
+
+/* ---- scroll body ------------------------------------------------- */
+.todo__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 8px 14px 14px;
+  scrollbar-gutter: stable;
+}
+
+.todo__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* ---- sections ----------------------------------------------------- */
+.todo__section {
+  margin: 0 -6px;
+  padding: 0 6px 2px;
+  border-radius: var(--ds-radius-md);
+  transition:
+    background-color var(--ds-dur-fast) ease,
+    box-shadow var(--ds-dur-fast) ease;
+}
+
+.todo__section.is-drop {
+  background: color-mix(in srgb, var(--ds-accent) 5%, transparent);
+  box-shadow: inset 0 0 0 1px var(--ds-accent-line);
+}
+
+.todo__section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0 6px;
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: -0.005em;
+}
+
+.todo__section-head .todo__count {
+  font-weight: var(--ds-weight-regular);
+}
+
+.todo__empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 0 10px;
+  font-size: var(--ds-text-xs);
+  line-height: 1.5;
+  color: var(--ds-muted);
+  text-wrap: pretty;
+}
+
+.todo__empty svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--ds-faint);
+}
+
+/* ---- inline add field (AddRow) ---------------------------------- */
+.addrow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.addrow__field {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: var(--ds-control-md);
+  padding: 0 8px 0 9px;
+  gap: 7px;
+  background: var(--ds-sunken);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  cursor: text;
+  transition:
+    border-color var(--ds-dur-fast) ease,
+    background-color var(--ds-dur-fast) ease,
+    box-shadow var(--ds-dur-fast) ease;
+}
+
+.addrow__field:hover {
+  border-color: var(--ds-border-strong);
+}
+
+.addrow__field:focus-within {
+  background: var(--ds-surface);
+  border-color: var(--ds-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ds-accent) 18%, transparent);
+}
+
+.addrow__plus {
+  flex: 0 0 auto;
+  color: var(--ds-muted);
+}
+
+.addrow__field:focus-within .addrow__plus {
+  color: var(--ds-accent);
+}
+
+.addrow__field input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: var(--ds-text-sm);
+}
+
+.addrow__kbd {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 18px;
+  border: 1px solid var(--ds-border-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--ds-radius-xs);
+  color: var(--ds-muted);
+  font: inherit;
+  transition: opacity var(--ds-dur-fast) ease;
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+.addrow > .field {
+  flex: 0 0 auto;
+  width: auto;
+  font-size: var(--ds-text-xs);
+}
+
+/* ---- task row -------------------------------------------------- */
+.row {
+  padding: var(--row-pad) 6px;
+  margin-left: -6px;
+  border-radius: var(--ds-radius-md);
+  transition: background-color var(--ds-dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .row:hover {
+    background: var(--ds-sunken);
+  }
+
+  .todo--dragging .row:hover {
+    background: transparent;
+  }
+}
+
+.row--dragging {
+  opacity: 0.4;
+}
+
+.row--drop-before {
+  box-shadow: inset 0 2px 0 var(--ds-accent);
+}
+
+.todo__list.is-drop-end > .row:last-child {
+  box-shadow: inset 0 -2px 0 var(--ds-accent);
+}
+
+.row__main {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap);
+}
+
+/* Checkbox — drawn, 16px, black when done. */
+.row__check {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  padding: 0;
+  border: 1.5px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-xs);
+  background: var(--ds-surface);
+  cursor: pointer;
+  position: relative;
+  transition:
+    background-color var(--ds-dur-fast) ease,
+    border-color var(--ds-dur-fast) ease,
+    scale var(--ds-dur-fast) var(--ds-ease-out);
+}
+
+.row__check:hover {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent-soft);
+}
+
+.row__check--on:hover {
+  background: var(--ds-accent-hover);
+}
+
+.row__check:active {
+  scale: 0.88;
+}
+
+.row__check--sm {
+  width: 14px;
+  height: 14px;
+  margin-top: 2.5px;
+  border-radius: 3px;
+}
+
+.row__check--on {
+  background: var(--ds-accent);
+  border-color: var(--ds-accent);
+}
+
+.row__check--on::after {
+  content: "";
+  position: absolute;
+  left: 4.25px;
+  top: 1.25px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--ds-white);
+  border-width: 0 1.75px 1.75px 0;
+  transform: rotate(45deg);
+  animation: check-in var(--ds-dur) var(--ds-ease-out);
+}
+
+.row__check--sm.row__check--on::after {
+  left: 3.5px;
+  top: 0.75px;
+  width: 3.5px;
+  height: 7px;
+  border-width: 0 1.5px 1.5px 0;
+}
+
+@keyframes check-in {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+
+/* importance — the deliberate splash of colour, kept to 8px */
+.row__prio {
+  position: relative;
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  appearance: none;
+  transition: scale var(--ds-dur-fast) var(--ds-ease-out);
+}
+
+button.row__prio {
+  cursor: pointer;
+}
+
+button.row__prio::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+
+button.row__prio:hover {
+  scale: 1.35;
+}
+
+.row__prio--static {
+  margin-top: 0;
+}
+
+.goal__task .row__prio--static {
+  margin-top: 6px;
+}
+
+.row__prio--high {
+  background: var(--ds-priority-high);
+}
+.row__prio--medium {
+  background: var(--ds-priority-medium);
+}
+.row__prio--low {
+  background: var(--ds-priority-low);
+}
+
+.row__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.row__title {
+  font-size: var(--fs);
+  color: var(--ds-fg);
+  text-wrap: pretty;
+}
+
+.row__goal {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--ds-text-2xs);
+  color: var(--ds-muted);
+}
+
+.row__goal svg {
+  flex: 0 0 auto;
+}
+
+.row__goal span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row--done .row__title {
+  text-decoration: line-through;
+  text-decoration-color: var(--ds-faint);
+  color: var(--ds-muted);
+}
+
+.row--done .row__prio {
+  opacity: 0.3;
+}
+
+.row__due {
+  flex: 0 0 auto;
+  height: 20px;
+  padding: 0 5px;
+  appearance: none;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: var(--ds-text-2xs);
+  color: var(--ds-muted);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--ds-dur-fast) ease;
+}
+
+.row__due:hover {
+  background: var(--ds-press);
+}
+
+.row__meta {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Narrow widgets: the title keeps the full width; due and steps drop to a
+ * second line under it. */
+@container todo (max-width: 440px) {
+  .row__main {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  .row__text {
+    flex-basis: 0;
+  }
+
+  .row__meta {
+    order: 10;
+    flex-basis: 100%;
+    margin-left: calc(-5px + 24px + 2 * var(--gap));
+  }
+}
+
+.row__due--urgent {
+  color: var(--ds-priority-high);
+  font-weight: var(--ds-weight-medium);
+}
+
+.row__micro-toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  height: 20px;
+  padding: 0 5px 0 3px;
+  margin-top: 0;
+  border-radius: var(--ds-radius-sm);
+  font: inherit;
+  font-size: var(--ds-text-2xs);
+  color: var(--ds-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--ds-dur-fast) ease,
+    color var(--ds-dur-fast) ease;
+}
+
+.row__micro-toggle:hover,
+.row__micro-toggle[aria-expanded="true"] {
+  color: var(--ds-fg);
+}
+
+.row__micro-toggle:hover {
+  background: var(--ds-press);
+}
+
+.row__remove,
+.row__more {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--ds-dur-fast) ease,
+    color var(--ds-dur-fast) ease,
+    background-color var(--ds-dur-fast) ease;
+}
+
+.row:hover .row__more,
+.row:focus-within .row__more,
+.row__more[data-state="open"],
+.micro:hover .row__remove,
+.micro:focus-within .row__remove,
+.goal__task:hover .row__remove,
+.goal__task:focus-within .row__remove,
+.goals__archived li:hover .row__remove,
+.goals__archived li:focus-within .row__remove,
+.goal__date:hover .row__remove {
+  opacity: 1;
+}
+
+.row__more {
+  color: var(--ds-muted);
+}
+
+.row__more:hover,
+.row__more[data-state="open"] {
+  color: var(--ds-fg);
+  background: var(--ds-press);
+}
+
+.row__remove:hover {
+  color: var(--ds-danger);
+  background: var(--ds-press);
+}
+
+/* ---- inline editing -------------------------------------------- */
+.editable {
+  cursor: text;
+  border-radius: var(--ds-radius-xs);
+  outline: none;
+}
+
+.editable:focus-visible {
+  box-shadow: 0 0 0 2px var(--ds-accent-line);
+}
+
+input.editable--on {
+  display: block;
+  width: calc(100% + 8px);
+  min-width: 0;
+  margin: -2px -4px;
+  padding: 1px 3px;
+  border: 1px solid var(--ds-accent);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+  color: var(--ds-fg);
+  font: inherit;
+  line-height: inherit;
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ds-accent) 16%, transparent);
+}
+
+/* ---- steps (micro list) --------------------------------------
+ * Indented so each step's box lines up under its task's title. */
+.row__micro {
+  list-style: none;
+  margin: 6px 0 2px 7px;
+  padding: 0 0 0 36px;
+  border-left: 1px solid var(--ds-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: reveal-down var(--ds-dur) var(--ds-ease-out);
+}
+
+@keyframes reveal-down {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+
+.micro {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.micro__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--ds-text-xs);
+  line-height: 1.5;
+  color: var(--ds-fg-2);
+  text-wrap: pretty;
+}
+
+.micro .row__remove {
+  width: 18px;
+  height: 18px;
+}
+
+.micro__add {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 20px;
+  margin-left: 23px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-fg);
+}
+
+.micro__add::placeholder {
+  color: var(--ds-faint);
+}
+
+.micro__add:focus::placeholder {
+  color: var(--ds-muted);
+}
+
+.micro--done .micro__title {
+  text-decoration: line-through;
+  text-decoration-color: var(--ds-faint);
+  color: var(--ds-muted);
+}
+
+/* ---- backlog ----------------------------------------------- */
+.todo__backlog-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  appearance: none;
+  border: 0;
+  border-top: 1px solid var(--ds-border);
+  background: transparent;
+  padding: 12px 0 6px;
+  margin-top: 8px;
+  font: inherit;
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-fg);
+  cursor: pointer;
+}
+
+.todo__backlog-toggle .caret {
+  color: var(--ds-muted);
+}
+
+.todo__backlog-toggle:hover .caret {
+  color: var(--ds-fg);
+}
+
+.todo__backlog-toggle .todo__count {
+  margin-left: auto;
+  font-weight: var(--ds-weight-regular);
+}
+
+.todo__backlog {
+  animation: reveal-down var(--ds-dur) var(--ds-ease-out);
+}
+
+.todo__group {
+  margin-top: 10px;
+}
+
+.todo__group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-fg-2);
+  padding: 4px 0 4px;
+}
+
+/* ---- caret ------------------------------------------------- */
+.caret {
+  flex: 0 0 auto;
+  display: inline-block;
+  color: inherit;
+  transition: rotate var(--ds-dur) var(--ds-ease-out);
+}
+
+.caret--open {
+  rotate: 90deg;
+}
+
+/* =============================== GOALS ============================== */
+.goals__horizon {
+  height: var(--ds-control-md);
+}
+
+.goals__group {
+  margin-top: 16px;
+}
+
+.goals__group:first-of-type {
+  margin-top: 8px;
+}
+
+.goals__group-head {
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-fg-2);
+  margin: 0 0 4px;
+}
+
+/* A goal is a row, not a card-inside-a-card. */
+.goal {
+  border-top: 1px solid var(--ds-border);
+}
+
+.goals__group-head + .goal {
+  border-top: 0;
+}
+
+.goal--done .goal__title {
+  color: var(--ds-muted);
+}
+
+.goal__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 6px;
+  margin: 0 0 0 -6px;
+  border-radius: var(--ds-radius-md);
+  cursor: pointer;
+  transition: background-color var(--ds-dur-fast) ease;
+}
+
+.goal__head:hover {
+  background: var(--ds-sunken);
+}
+
+.goal__head:focus-visible {
+  outline-offset: -2px;
+}
+
+.goal__head .caret {
+  color: var(--ds-faint);
+}
+
+.goal__head:hover .caret {
+  color: var(--ds-fg);
+}
+
+.goal__meta {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.goal__title {
+  display: block;
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-medium);
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+
+.goal--done .goal__title {
+  text-decoration: line-through;
+  text-decoration-color: var(--ds-faint);
+}
+
+.goal__sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 2px;
+  margin-top: 2px;
+  font-size: var(--ds-text-2xs);
+  color: var(--ds-muted);
+}
+
+.goal__chip {
+  color: var(--ds-fg-2);
+  font-weight: var(--ds-weight-medium);
+}
+
+.goal__body {
+  padding: 2px 0 14px 36px;
+  animation: reveal-down var(--ds-dur) var(--ds-ease-out);
+}
+
+.goal__detail {
+  display: block;
+  width: calc(100% + 8px);
+  max-width: 65ch;
+  margin: 0 -4px 8px;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  resize: none;
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  line-height: 1.55;
+  color: var(--ds-fg-2);
+  transition:
+    background-color var(--ds-dur-fast) ease,
+    border-color var(--ds-dur-fast) ease;
+}
+
+.goal__detail::placeholder {
+  color: var(--ds-faint);
+}
+
+.goal__detail:hover {
+  background: var(--ds-sunken);
+}
+
+.goal__detail:focus {
+  outline: none;
+  background: var(--ds-surface);
+  border-color: var(--ds-accent);
+}
+
+.goal__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.goal__fields .goal__field {
+  width: auto;
+  height: var(--ds-control-sm);
+  font-size: var(--ds-text-xs);
+}
+
+.goal__date {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.goal__date > button[data-slot] {
+  height: var(--ds-control-sm);
+  font-size: var(--ds-text-xs);
+}
+
+.goal__head--editing {
+  cursor: default;
+}
+
+.goal__head--editing:hover {
+  background: transparent;
+}
+
+.goals__archive {
+  margin-top: 8px;
+}
+
+.goals__archived {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.goals__archived li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+}
+
+.goals__archived-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.goal__tasks {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.goal__task {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.goal__task .row__prio {
+  margin-top: 6px;
+}
+
+.goal__task-title {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--ds-text-xs);
+  line-height: 1.5;
+  color: var(--ds-fg-2);
+}
+
+.goal__task.is-done .goal__task-title {
+  text-decoration: line-through;
+  text-decoration-color: var(--ds-faint);
+  color: var(--ds-muted);
+}
+
+.goal__task-move {
+  flex: 0 0 auto;
+  appearance: none;
+  height: 20px;
+  border: 1px solid var(--ds-border);
+  background: transparent;
+  color: var(--ds-muted);
+  font: inherit;
+  font-size: var(--ds-text-2xs);
+  padding: 0 7px;
+  border-radius: var(--ds-radius-sm);
+  cursor: pointer;
+  transition:
+    border-color var(--ds-dur-fast) ease,
+    color var(--ds-dur-fast) ease;
+}
+
+.goal__task-move:hover {
+  color: var(--ds-fg);
+  border-color: var(--ds-fg);
+}
+
+.goal__actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.goal__actions button {
+  appearance: none;
+  height: var(--ds-control-sm);
+  border: 1px solid var(--ds-border-strong);
+  background: var(--ds-surface);
+  color: var(--ds-fg-2);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  padding: 0 10px;
+  border-radius: var(--ds-radius-md);
+  cursor: pointer;
+  transition:
+    border-color var(--ds-dur-fast) ease,
+    color var(--ds-dur-fast) ease,
+    scale var(--ds-dur-fast) var(--ds-ease-out);
+}
+
+.goal__actions button:hover {
+  color: var(--ds-fg);
+  border-color: var(--ds-fg);
+}
+
+.goal__actions button:active {
+  scale: 0.97;
+}
+
+.goal__actions .goal__delete {
+  margin-left: auto;
+  border-color: transparent;
+  background: transparent;
+  color: var(--ds-muted);
+}
+
+.goal__actions .goal__delete:hover {
+  color: var(--ds-danger);
+  border-color: transparent;
+  background: var(--ds-hover);
+}
+
+/* progress ring */
+.goal-ring {
+  flex: 0 0 auto;
+}
+
+.goal-ring__track {
+  fill: none;
+  stroke: var(--ds-border);
+  stroke-width: 3;
+}
+
+.goal-ring__fill {
+  fill: none;
+  stroke: var(--ds-accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--ds-dur-slow) var(--ds-ease-out);
+}
+
+/* =============================== MENUS ============================== */
+.task-menu {
+  min-width: 190px;
+}
+
+.task-menu__scroll {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.task-menu__text {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* due-date picker: quick picks beside a month calendar */
+.due-picker {
+  display: flex;
+}
+
+.due-picker__quick {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 168px;
+  padding: 8px;
+  border-right: 1px solid var(--ds-border);
+}
+
+.due-picker__quick button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  height: 30px;
+  padding: 0 8px;
+  appearance: none;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  line-height: 30px;
+  color: var(--ds-fg);
+  text-align: left;
+  cursor: pointer;
+}
+
+.due-picker__quick button:hover,
+.due-picker__quick button:focus-visible {
+  background: var(--ds-hover);
+}
+
+.due-picker__date {
+  color: var(--ds-muted);
+  font-size: var(--ds-text-2xs);
+}
+
+.due-picker__quick .due-picker__clear {
+  margin-top: auto;
+  color: var(--ds-muted);
+}
+
+.due-picker__quick .due-picker__clear:hover {
+  color: var(--ds-danger);
+}

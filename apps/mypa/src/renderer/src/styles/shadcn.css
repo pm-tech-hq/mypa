@@ -1,0 +1,115 @@
+/* shadcn/ui theme — mapped onto @repo/design-system's --ds-* tokens so
+ * shadcn primitives inherit the black/white/#f2f2f2 + Poppins look exactly.
+ *
+ * The design-system stylesheet is imported here (not as a plain JS import in
+ * main.tsx) specifically so it can be layer()-ed: unlayered CSS always wins
+ * over any @layer'd rule regardless of specificity, and its
+ * `button, input, select, textarea { color: inherit }` reset was silently
+ * beating every shadcn component's `text-*` utility (Tailwind emits its own
+ * utilities inside `@layer utilities`). Layering it into "base" — the same
+ * layer Tailwind's own Preflight uses — restores the normal cascade.
+ */
+@import "@repo/design-system/styles.css" layer(base);
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--ds-bg);
+  --color-foreground: var(--ds-fg);
+
+  --color-card: var(--ds-surface);
+  --color-card-foreground: var(--ds-fg);
+  --color-popover: var(--ds-surface);
+  --color-popover-foreground: var(--ds-fg);
+
+  --color-primary: var(--ds-accent);
+  --color-primary-foreground: var(--ds-accent-fg);
+  --color-secondary: var(--ds-hover);
+  --color-secondary-foreground: var(--ds-fg);
+
+  --color-muted: var(--ds-hover);
+  --color-muted-foreground: var(--ds-muted);
+  --color-accent: var(--ds-hover);
+  --color-accent-foreground: var(--ds-fg);
+
+  --color-destructive: var(--ds-danger);
+  --color-destructive-foreground: var(--ds-white);
+
+  --color-border: var(--ds-border);
+  --color-input: var(--ds-border-strong);
+  --color-ring: var(--ds-accent);
+
+  --font-sans: var(--ds-font-sans);
+
+  --radius: var(--ds-radius-md);
+  --radius-xs: var(--ds-radius-xs);
+  --radius-sm: var(--ds-radius-sm);
+  --radius-md: var(--ds-radius-md);
+  --radius-lg: var(--ds-radius-lg);
+  --radius-xl: var(--ds-radius-lg);
+
+  --shadow-xs: none;
+  --shadow-sm: var(--ds-shadow-1);
+  --shadow-md: var(--ds-shadow-pop);
+  --shadow-lg: var(--ds-shadow-2);
+}
+
+/* Tailwind v4's preflight leaves borders at currentColor; shadcn components
+ * expect a bare `border` to mean the hairline token, not black. */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+  }
+}
+
+/* ---- Overlay motion -------------------------------------------------------
+ * Every Radix overlay (menus, popovers, selects, tooltips, dialogs) shares one
+ * motion grammar: a strong ease-out on the way in, a quicker exit, scaled from
+ * its trigger (shadcn already sets transform-origin from Radix's variable;
+ * dialogs stay centred). tw-animate-css reads --tw-duration / --tw-ease.
+ */
+@layer components {
+  [data-slot="dropdown-menu-content"],
+  [data-slot="dropdown-menu-sub-content"],
+  [data-slot="popover-content"],
+  [data-slot="select-content"],
+  [data-slot="tooltip-content"] {
+    --tw-ease: var(--ds-ease-out);
+    --tw-duration: 160ms;
+  }
+
+  [data-slot="tooltip-content"] {
+    --tw-duration: 120ms;
+  }
+
+  [data-slot="dialog-content"],
+  [data-slot="alert-dialog-content"] {
+    --tw-ease: var(--ds-ease-out);
+    --tw-duration: 200ms;
+  }
+
+  [data-slot="dialog-overlay"],
+  [data-slot="alert-dialog-overlay"] {
+    --tw-duration: 200ms;
+  }
+
+  [data-state="closed"][data-slot] {
+    --tw-duration: 110ms;
+  }
+
+  /* Radix moves focus onto the overlay container itself; the global focus
+     ring belongs on the items inside it, not around the whole panel. */
+  [data-slot="dropdown-menu-content"]:focus-visible,
+  [data-slot="select-content"]:focus-visible,
+  [data-slot="popover-content"]:focus-visible,
+  [data-slot="dialog-content"]:focus-visible,
+  [data-slot="alert-dialog-content"]:focus-visible {
+    outline: none;
+  }
+
+}
+
