@@ -9,8 +9,9 @@ import {
   type ReactNode,
 } from "react";
 
-import { ChevronDown, LayoutGrid, Package, Plus, Undo2 } from "lucide-react";
+import { ChevronDown, LayoutGrid, Package, Plus, Sparkles, Undo2 } from "lucide-react";
 
+import { AssistantPanel } from "./components/AssistantPanel";
 import { BrandMark } from "./components/BrandMark";
 import { Marketplace } from "./components/Marketplace";
 import { PageSidebar } from "./components/PageSidebar";
@@ -67,6 +68,22 @@ export function App() {
   /** Kind waiting on the "page is full" prompt. */
   const [pendingKind, setPendingKind] = useState<WidgetChoice | null>(null);
   const [marketOpen, setMarketOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+
+  // Ctrl+K (⌘K) opens and closes the assistant from anywhere; Esc closes it.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setAssistantOpen((v) => !v);
+      } else if (e.key === "Escape" && !e.defaultPrevented) {
+        const inPanel = (document.activeElement as HTMLElement | null)?.closest(".asst");
+        if (inPanel) setAssistantOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const [marketTarget, setMarketTarget] = useState<MarketTarget>({ view: "discover" });
 
   const { catalog } = useCatalog();
@@ -244,6 +261,21 @@ export function App() {
           )}
         </div>
         <div className="appbar__actions">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={assistantOpen ? "secondary" : "ghost"}
+                size="sm"
+                className="appbar__assistant"
+                aria-pressed={assistantOpen}
+                onClick={() => setAssistantOpen((v) => !v)}
+              >
+                <Sparkles />
+                Assistant
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Ask or tell the assistant (Ctrl+K)</TooltipContent>
+          </Tooltip>
           {undo && undo.pageId === currentPageId && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -287,6 +319,12 @@ export function App() {
         </div>
         <WindowControls />
       </header>
+
+      <AssistantPanel
+        open={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        pageId={currentPageId}
+      />
 
       <div className="pg-body">
         {snapshot && currentPageId && <PageSidebar currentPageId={currentPageId} />}

@@ -2,6 +2,7 @@ import { clipboard, contextBridge, ipcRenderer, webUtils } from "electron";
 
 import { IPC } from "../shared/api";
 import { MARKET_IPC } from "../shared/marketApi";
+import { ASSISTANT_IPC } from "../shared/assistant";
 import { TUTOR_IPC } from "../shared/tutor";
 
 // Shape must match `MypaApi` in ../shared/api (enforced on the renderer side
@@ -81,6 +82,22 @@ contextBridge.exposeInMainWorld("mypa", {
       const handler = (_e: unknown, snapshot: unknown) => cb(snapshot);
       ipcRenderer.on(IPC.snapshotChanged, handler);
       return () => ipcRenderer.removeListener(IPC.snapshotChanged, handler);
+    },
+  },
+  assistant: {
+    getSettings: () => ipcRenderer.invoke(ASSISTANT_IPC.getSettings),
+    saveSettings: (s: unknown) => ipcRenderer.invoke(ASSISTANT_IPC.saveSettings, s),
+    scopes: () => ipcRenderer.invoke(ASSISTANT_IPC.scopes),
+    modelInfo: () => ipcRenderer.invoke(ASSISTANT_IPC.modelInfo),
+    send: (req: unknown) => ipcRenderer.invoke(ASSISTANT_IPC.send, req),
+    cancel: (requestId: string) => ipcRenderer.invoke(ASSISTANT_IPC.cancel, requestId),
+    approve: (actionId: string, allow: boolean) =>
+      ipcRenderer.invoke(ASSISTANT_IPC.approve, actionId, allow),
+    undo: (actionId: string) => ipcRenderer.invoke(ASSISTANT_IPC.undo, actionId),
+    onEvent: (cb: (e: unknown) => void) => {
+      const handler = (_e: unknown, event: unknown) => cb(event);
+      ipcRenderer.on(ASSISTANT_IPC.event, handler);
+      return () => ipcRenderer.removeListener(ASSISTANT_IPC.event, handler);
     },
   },
   tutor: {

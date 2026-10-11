@@ -159,6 +159,9 @@ function WidgetFrame({ widget, installed }: { widget: WidgetRow; installed: Inst
   // The host's own copy of the widget's storage, updated before the DB round
   // trip so back-to-back writes never read a stale snapshot and drop data.
   const storage = useRef<Record<string, unknown>>({ ...(widget.settings.storage ?? {}) });
+  /** Storage states this host wrote recently, so their DB echoes aren't
+   *  mistaken for someone else (the Assistant, an undo) changing the data. */
+  const written = useRef<string[]>([]);
 
   const post = (msg: BridgeResponse | BridgeEvent) =>
     frameRef.current?.contentWindow?.postMessage(msg, "*");
@@ -205,6 +208,7 @@ function WidgetFrame({ widget, installed }: { widget: WidgetRow; installed: Inst
           if (JSON.stringify(next).length > MAX_STORAGE_BYTES)
             throw new Error("Storage is full (512 KB per widget).");
           storage.current = next;
+          written.current = [...written.current.slice(-15), JSON.stringify(next)];
           await actions.updateWidgetSettings(w.id, { storage: next });
           return true;
         }
@@ -301,6 +305,21 @@ function WidgetFrame({ widget, installed }: { widget: WidgetRow; installed: Inst
     if (connected && tasksKey) post({ mypa: 1, event: "tasks", data: taskView() });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tasksKey, connected]);
+
+  // Data changed from outside the widget (the Assistant, an undo): adopt it and
+  // reload the frame so the widget reads it fresh.
+  const storedJson = JSON.stringify(widget.settings.storage ?? {});
+  useEffect(() => {
+    if (storedJson === JSON.stringify(storage.current)) {
+      written.current = [];
+      return;
+    }
+    if (written.current.includes(storedJson)) return;
+    storage.current = JSON.parse(storedJson) as Record<string, unknown>;
+    written.current = [];
+    setConnected(false);
+    setReloads((n) => n + 1);
+  }, [storedJson]);
 
   // Dev-linked widgets reload whenever their files change on disk.
   useEffect(() => {

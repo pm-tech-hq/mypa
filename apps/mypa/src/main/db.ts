@@ -103,6 +103,25 @@ function all(sql: string, params: Cell[] = []): Row[] {
   return out;
 }
 
+/** sql.js closes and reopens the database inside export(), which resets
+ *  connection pragmas — foreign keys included. Without re-enabling them every
+ *  ON DELETE CASCADE / SET NULL silently stops working after the first save. */
+function exportDb(): Buffer {
+  const data = Buffer.from(db.export());
+  db.run("PRAGMA foreign_keys = ON");
+  return data;
+}
+
+/** Removes rows left behind while cascades weren't enforced (see exportDb). */
+function removeOrphans(): void {
+  run(`DELETE FROM steps WHERE task_id NOT IN (SELECT id FROM tasks)`);
+  run(`DELETE FROM widgets WHERE page_id IS NOT NULL AND page_id NOT IN (SELECT id FROM pages)`);
+  run(`UPDATE tasks SET goal_id = NULL WHERE goal_id IS NOT NULL AND goal_id NOT IN (SELECT id FROM goals)`);
+  run(
+    `DELETE FROM calendar_remote_events WHERE account_id NOT IN (SELECT id FROM calendar_accounts)`,
+  );
+}
+
 function scheduleSave(): void {
   dirty = true;
   if (saveTimer) return;
@@ -110,7 +129,7 @@ function scheduleSave(): void {
     saveTimer = null;
     if (!dirty) return;
     dirty = false;
-    void saveAtomic(Buffer.from(db.export()));
+    void saveAtomic(exportDb());
   }, 300);
 }
 
@@ -149,7 +168,7 @@ export function flush(): void {
   }
   if (!dirty) return;
   dirty = false;
-  saveAtomicSync(Buffer.from(db.export()));
+  saveAtomicSync(exportDb());
 }
 
 /* ------------------------------------------------------------------ schema -- */
@@ -572,6 +591,7 @@ export async function initDb(dbPath: string): Promise<void> {
   // database that's after migrate() runs, not as part of SCHEMA itself.
   db.run(`CREATE INDEX IF NOT EXISTS idx_widgets_page ON widgets(page_id)`);
   ensurePageColors();
+  removeOrphans();
   carryOver();
   flush();
 }
@@ -674,10 +694,11 @@ function customPreset(pluginId: string | undefined) {
   };
 }
 
-export function createWidget(input: NewWidget): void {
+export function createWidget(input: NewWidget): string | null {
   const now = Date.now();
   const custom = input.kind === "custom" ? customPreset(input.pluginId) : null;
-  if (input.kind === "custom" && !custom) return;
+  if (input.kind === "custom" && !custom) return null;
+  const id = randomUUID();
   const preset = custom
     ? custom
     : input.kind === "todo"
@@ -707,7 +728,7 @@ export function createWidget(input: NewWidget): void {
     `INSERT INTO widgets (id, page_id, kind, title, x, y, w, h, settings, sort, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      randomUUID(),
+      id,
       input.pageId,
       input.kind,
       preset.title,
@@ -720,6 +741,7 @@ export function createWidget(input: NewWidget): void {
       now,
     ],
   );
+  return id;
 }
 
 export function updateWidget(
@@ -852,14 +874,15 @@ export function setMetaJson(key: string, value: unknown): void {
   flush();
 }
 
-export function createGoal(input: NewGoal): void {
+export function createGoal(input: NewGoal): string {
   const now = Date.now();
+  const id = randomUUID();
   const sort = Number(get(`SELECT COUNT(*) c FROM goals`)?.c ?? 0);
   run(
     `INSERT INTO goals (id, title, detail, horizon, target_date, status, project, sort, created_at)
      VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
     [
-      randomUUID(),
+      id,
       input.title,
       input.detail ?? "",
       input.horizon,
@@ -869,6 +892,7 @@ export function createGoal(input: NewGoal): void {
       now,
     ],
   );
+  return id;
 }
 
 export function updateGoal(id: string, p: Partial<GoalRow>): void {
@@ -887,14 +911,15 @@ export function deleteGoal(id: string): void {
   run(`DELETE FROM goals WHERE id = ?`, [id]);
 }
 
-export function createTask(input: NewTask): void {
+export function createTask(input: NewTask): string {
   const now = Date.now();
+  const id = randomUUID();
   const sort = Number(get(`SELECT COALESCE(MIN(sort), 0) m FROM tasks`)?.m ?? 0) - 1;
   run(
     `INSERT INTO tasks (id, goal_id, title, project, importance, section, done, due, sort, created_at)
      VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
     [
-      randomUUID(),
+      id,
       input.goalId ?? null,
       input.title,
       input.project ?? "myPA",
@@ -905,6 +930,7 @@ export function createTask(input: NewTask): void {
       now,
     ],
   );
+  return id;
 }
 
 export function updateTask(id: string, p: Partial<TaskRow>): void {
@@ -924,18 +950,20 @@ export function deleteTask(id: string): void {
   run(`DELETE FROM tasks WHERE id = ?`, [id]);
 }
 
-export function createStep(input: NewStep): void {
+export function createStep(input: NewStep): string {
+  const id = randomUUID();
   const sort =
     Number(
       get(`SELECT COALESCE(MAX(sort), -1) m FROM steps WHERE task_id = ?`, [input.taskId])?.m ??
         -1,
     ) + 1;
   run(`INSERT INTO steps (id, task_id, title, done, sort) VALUES (?, ?, ?, 0, ?)`, [
-    randomUUID(),
+    id,
     input.taskId,
     input.title,
     sort,
   ]);
+  return id;
 }
 
 export function updateStep(id: string, p: Partial<StepRow>): void {
@@ -956,12 +984,13 @@ export function setMeta(key: "carryOver", value: boolean): void {
 
 /* ----------------------------------------------------------- calendar --- */
 
-export function createCalendarEvent(input: NewCalendarEvent): void {
+export function createCalendarEvent(input: NewCalendarEvent): string {
+  const id = randomUUID();
   run(
     `INSERT INTO calendar_events (id, title, location, notes, start, end, all_day, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      randomUUID(),
+      id,
       input.title,
       input.location ?? "",
       input.notes ?? "",
@@ -971,6 +1000,7 @@ export function createCalendarEvent(input: NewCalendarEvent): void {
       Date.now(),
     ],
   );
+  return id;
 }
 
 export function updateCalendarEvent(id: string, p: Partial<CalendarEventRow>): void {
@@ -1194,4 +1224,43 @@ export function resetTranscriptForRetry(id: string): void {
     `UPDATE transcripts SET status = 'pending', progress = 0, error_message = NULL WHERE id = ?`,
     [id],
   );
+}
+
+/* ------------------------------------------------- raw rows (assistant undo) -- */
+
+/** Tables the assistant can change; undo restores their rows exactly. */
+export type UndoTable = "tasks" | "steps" | "goals" | "calendar_events" | "widgets";
+
+const UNDO_TABLES = new Set<UndoTable>(["tasks", "steps", "goals", "calendar_events", "widgets"]);
+
+/** The stored rows for these ids, column for column. */
+export function rawRows(table: UndoTable, ids: string[]): Row[] {
+  if (!UNDO_TABLES.has(table) || ids.length === 0) return [];
+  return all(`SELECT * FROM ${table} WHERE id IN (${ids.map(() => "?").join(",")})`, ids);
+}
+
+/** Steps belonging to these tasks (deleting a task cascades to them). */
+export function rawStepsForTasks(taskIds: string[]): Row[] {
+  if (taskIds.length === 0) return [];
+  return all(`SELECT * FROM steps WHERE task_id IN (${taskIds.map(() => "?").join(",")})`, taskIds);
+}
+
+/** Puts rows back exactly as captured. An upsert, not INSERT OR REPLACE:
+ *  replacing would delete the row first and cascade to its children. */
+export function restoreRows(table: UndoTable, rows: Row[]): void {
+  if (!UNDO_TABLES.has(table)) return;
+  for (const row of rows) {
+    const cols = Object.keys(row);
+    const updates = cols.filter((c) => c !== "id").map((c) => `${c} = excluded.${c}`);
+    run(
+      `INSERT INTO ${table} (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})
+       ON CONFLICT(id) DO UPDATE SET ${updates.join(", ")}`,
+      cols.map((c) => row[c] as Cell),
+    );
+  }
+}
+
+export function deleteRows(table: UndoTable, ids: string[]): void {
+  if (!UNDO_TABLES.has(table) || ids.length === 0) return;
+  run(`DELETE FROM ${table} WHERE id IN (${ids.map(() => "?").join(",")})`, ids);
 }

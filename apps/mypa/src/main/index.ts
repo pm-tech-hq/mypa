@@ -37,6 +37,7 @@ import {
   syncAllAccounts,
 } from "./calendar/sync";
 import * as db from "./db";
+import { registerAssistantHandlers } from "./assistant/ipc";
 import { registerTutorHandlers } from "./tutor/ipc";
 import { flushPendingDeepLink, setupDeepLinks } from "./deeplink";
 import { registerMarketHandlers } from "./widgets/ipc";
@@ -386,6 +387,7 @@ app.whenReady().then(async () => {
   registerWindowHandlers();
   registerDbHandlers();
   registerTutorHandlers();
+  registerAssistantHandlers();
   handleWidgetProtocol();
   registerMarketHandlers();
   ipcMain.handle(IPC.getVersion, () => app.getVersion());

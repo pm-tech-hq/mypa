@@ -3,10 +3,10 @@
   "tasks": {
     "build": {
       "outputs": ["out/**"],
-      "env": ["ELECTRON_RENDERER_URL"]
+      "env": ["ELECTRON_RENDERER_URL", "MYPA_DEBUG_ASSISTANT"]
     },
     "dev": {
-      "env": ["ELECTRON_RENDERER_URL"]
+      "env": ["ELECTRON_RENDERER_URL", "MYPA_DEBUG_ASSISTANT"]
     }
   }
 }

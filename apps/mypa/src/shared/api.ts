@@ -24,6 +24,7 @@ import type {
   WidgetRow,
   WidgetSettings,
 } from "./types";
+import type { MypaAssistant } from "./assistant";
 import type { MypaTutor } from "./tutor";
 
 export const IPC = {
@@ -173,5 +174,6 @@ export interface MypaApi {
   win: MypaWin;
   db: MypaDb;
   tutor: MypaTutor;
+  assistant: MypaAssistant;
   market: MypaMarket;
 }

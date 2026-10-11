@@ -16,12 +16,32 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
 const PRESETS: { label: string; type: ProviderType; baseUrl: string; model: string }[] = [
-  { label: "Groq", type: "openai", baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" },
+  {
+    label: "Groq",
+    type: "openai",
+    baseUrl: "https://api.groq.com/openai/v1",
+    model: "llama-3.3-70b-versatile",
+  },
   { label: "OpenAI", type: "openai", baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" },
   { label: "Claude (Anthropic)", type: "anthropic", baseUrl: "", model: "claude-sonnet-5" },
-  { label: "OpenRouter", type: "openai", baseUrl: "https://openrouter.ai/api/v1", model: "openai/gpt-4o-mini" },
-  { label: "Ollama (on this PC)", type: "openai", baseUrl: "http://localhost:11434/v1", model: "llama3.2" },
-  { label: "LM Studio (on this PC)", type: "openai", baseUrl: "http://localhost:1234/v1", model: "" },
+  {
+    label: "OpenRouter",
+    type: "openai",
+    baseUrl: "https://openrouter.ai/api/v1",
+    model: "openai/gpt-4o-mini",
+  },
+  {
+    label: "Ollama (on this PC)",
+    type: "openai",
+    baseUrl: "http://localhost:11434/v1",
+    model: "llama3.2",
+  },
+  {
+    label: "LM Studio (on this PC)",
+    type: "openai",
+    baseUrl: "http://localhost:1234/v1",
+    model: "",
+  },
   { label: "Other OpenAI-compatible", type: "openai", baseUrl: "", model: "" },
 ];
 
@@ -35,17 +55,26 @@ interface Draft {
   hasKey: boolean;
 }
 
-const EMPTY: Draft = { name: "", type: "openai", baseUrl: "", model: "", apiKey: "", hasKey: false };
+const EMPTY: Draft = {
+  name: "",
+  type: "openai",
+  baseUrl: "",
+  model: "",
+  apiKey: "",
+  hasKey: false,
+};
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   config: TutorConfig | null;
   onConfigChange: (config: TutorConfig) => void;
-  engine: Engine;
-  onEngineChange: (engine: Engine) => void;
-  voice: string;
-  onVoiceChange: (voice: string) => void;
+  /** Voice settings are Tutor-only; leave these out to show just the AI models. */
+  engine?: Engine;
+  onEngineChange?: (engine: Engine) => void;
+  voice?: string;
+  onVoiceChange?: (voice: string) => void;
+  title?: string;
 }
 
 export function TutorSettings({
@@ -57,6 +86,7 @@ export function TutorSettings({
   onEngineChange,
   voice,
   onVoiceChange,
+  title = "Tutor settings",
 }: Props) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [systemVoices, setSystemVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -108,10 +138,10 @@ export function TutorSettings({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[86vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Tutor settings</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            The built-in model runs on this PC and needs no account. Add a provider for
-            smarter answers. API keys are encrypted and stay on this device.
+            The built-in model runs on this PC and needs no account. Add a provider for smarter
+            answers. API keys are encrypted and stay on this device.
           </DialogDescription>
         </DialogHeader>
 
@@ -238,7 +268,9 @@ export function TutorSettings({
                   id="tp-key"
                   type="password"
                   autoComplete="off"
-                  placeholder={draft.hasKey ? "Saved. Leave blank to keep it" : "Not needed for local servers"}
+                  placeholder={
+                    draft.hasKey ? "Saved. Leave blank to keep it" : "Not needed for local servers"
+                  }
                   value={draft.apiKey}
                   onChange={(e) => setDraft({ ...draft, apiKey: e.target.value })}
                 />
@@ -253,44 +285,51 @@ export function TutorSettings({
               </div>
             </div>
           ) : (
-            <Button type="button" variant="outline" size="sm" onClick={() => setDraft({ ...EMPTY })}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setDraft({ ...EMPTY })}
+            >
               Add provider
             </Button>
           )}
         </section>
 
-        <section className="tut-set">
-          <h4>Voice</h4>
-          <div className="tut-set__field">
-            <Label>Engine</Label>
-            <select
-              className="field tut__select"
-              value={engine}
-              onChange={(e) => {
-                onEngineChange(e.target.value as Engine);
-                onVoiceChange("");
-              }}
-            >
-              <option value="system">System voice: instant, basic quality</option>
-              <option value="neural">Neural voice: natural, ~90 MB download on first use</option>
-            </select>
-          </div>
-          <div className="tut-set__field">
-            <Label>Voice</Label>
-            <select
-              className="field tut__select"
-              value={voice}
-              onChange={(e) => onVoiceChange(e.target.value)}
-            >
-              <option value="">Default</option>
-              {voiceOptions.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </section>
+        {engine && onEngineChange && onVoiceChange && (
+          <section className="tut-set">
+            <h4>Voice</h4>
+            <div className="tut-set__field">
+              <Label>Engine</Label>
+              <select
+                className="field tut__select"
+                value={engine}
+                onChange={(e) => {
+                  onEngineChange(e.target.value as Engine);
+                  onVoiceChange("");
+                }}
+              >
+                <option value="system">System voice: instant, basic quality</option>
+                <option value="neural">Neural voice: natural, ~90 MB download on first use</option>
+              </select>
+            </div>
+            <div className="tut-set__field">
+              <Label>Voice</Label>
+              <select
+                className="field tut__select"
+                value={voice}
+                onChange={(e) => onVoiceChange(e.target.value)}
+              >
+                <option value="">Default</option>
+                {voiceOptions.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </section>
+        )}
       </DialogContent>
     </Dialog>
   );
