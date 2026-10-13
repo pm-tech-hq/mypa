@@ -709,7 +709,7 @@ export function createWidget(input: NewWidget): string | null {
         : input.kind === "tutor"
           ? { title: "Tutor", w: 480, h: 640, settings: "{}" }
           : input.kind === "typing"
-            ? { title: "Typing", w: 560, h: 520, settings: "{}" }
+            ? { title: "Typing", w: 560, h: 660, settings: "{}" }
             : input.kind === "transcribe"
               ? {
                   title: "Transcribe",

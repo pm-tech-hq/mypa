@@ -19,6 +19,7 @@ import {
 } from "../../../shared/types";
 import { CalendarAccounts } from "./CalendarAccounts";
 import { TrustBadge } from "./TrustBadge";
+import { TypingSettingsForm } from "./TypingSettings";
 
 interface Props {
   widget: WidgetRow;
@@ -73,6 +74,7 @@ export function WidgetSettings({ widget, onClose }: Props) {
           <TranscribeSettingsForm widget={widget} />
         )}
         {widget.kind === "custom" && <CustomSettingsForm widget={widget} />}
+        {widget.kind === "typing" && <TypingSettingsForm widget={widget} />}
 
         {widget.kind === "todo" && (
           <label className="wsettings__toggle">

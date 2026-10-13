@@ -35,10 +35,12 @@ export interface Passage {
 export interface RoundItem {
   passage: Passage;
   stage: Stage;
+  /** Practice that doesn't touch the passage's schedule (speed, drills). */
+  free?: boolean;
 }
 
 /** Passages per round: short enough to feel like a game, not homework. */
-export const ROUND_SIZE = 5;
+export const DEFAULT_ROUND_SIZE = 5;
 
 /** Days until the next recall, by box. */
 const INTERVALS = [1, 3, 7, 16, 35, 90];
@@ -182,12 +184,20 @@ function hash(s: string): string {
   return (h >>> 0).toString(36);
 }
 
-const MIN_WORDS = 8;
-const TARGET_WORDS = 18;
-const MAX_WORDS = 45;
+const CITATION =
+  /[\u2191^]|\b(?:Retrieved|Archived from|Accessed|ISBN|ISSN|doi|PMID|OCLC|Bibcode)\b|\bpp?\.\s*\d|\(\d{4}\)\.|\bet al\./i;
+
+export type PassageLength = "short" | "medium" | "long";
+
+/** Words per passage: fewest kept, where a passage closes, most allowed. */
+const LENGTHS: Record<PassageLength, { min: number; target: number; max: number }> = {
+  short: { min: 6, target: 10, max: 22 },
+  medium: { min: 8, target: 18, max: 45 },
+  long: { min: 20, target: 40, max: 75 },
+};
 
 /** Splits a long sentence at commas, or failing that every ~30 words. */
-function splitLong(sentence: string): string[] {
+function splitLong(sentence: string, MAX_WORDS: number, MIN_WORDS: number): string[] {
   const ws = words(sentence);
   if (ws.length <= MAX_WORDS) return [sentence];
   const out: string[] = [];
@@ -206,7 +216,8 @@ function splitLong(sentence: string): string[] {
   return out;
 }
 
-export function passagesOf(source: Source): Passage[] {
+export function passagesOf(source: Source, length: PassageLength = "medium"): Passage[] {
+  const { min: MIN_WORDS, target: TARGET_WORDS, max: MAX_WORDS } = LENGTHS[length];
   const cleaned = plainChars(
     source.kind === "transcript" ? cleanTranscript(source.text) : cleanNote(source.text),
   )
@@ -215,8 +226,10 @@ export function passagesOf(source: Source): Passage[] {
   const sentences = (cleaned.match(/[^.!?]+(?:[.!?]+["')\]]*|$)/g) ?? [])
     .map((s) => s.trim())
     .filter(Boolean)
+    // Reference lists and citations: nothing to learn, awkward to type.
+    .filter((s) => !CITATION.test(s))
     .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-    .flatMap(splitLong);
+    .flatMap((s) => splitLong(s, MAX_WORDS, MIN_WORDS));
 
   const chunks: string[] = [];
   let cur: string[] = [];
@@ -257,7 +270,15 @@ export function passagesOf(source: Source): Passage[] {
 
 /** Character ranges [start, end) of the words to hide: the longest content
  *  words, about a quarter of them, spread across the passage. */
-export function gapRanges(text: string): [number, number][] {
+export type GapDensity = "few" | "some" | "many";
+
+const DENSITY: Record<GapDensity, { share: number; most: number }> = {
+  few: { share: 0.15, most: 3 },
+  some: { share: 0.25, most: 6 },
+  many: { share: 0.4, most: 10 },
+};
+
+export function gapRanges(text: string, density: GapDensity = "some"): [number, number][] {
   const tokens: { start: number; end: number; word: string; i: number }[] = [];
   const re = /\S+/g;
   let m: RegExpExecArray | null;
@@ -275,7 +296,11 @@ export function gapRanges(text: string): [number, number][] {
       });
   }
   const content = tokens.filter((t) => isContent(t.word) && t.word.length >= 4);
-  const want = Math.min(6, Math.max(2, Math.round(content.length * 0.25)));
+  const { share, most } = DENSITY[density];
+  const want = Math.min(
+    most,
+    Math.max(density === "few" ? 1 : 2, Math.round(content.length * share)),
+  );
   const picked: typeof content = [];
   for (const t of [...content].sort((a, b) => b.word.length - a.word.length)) {
     if (picked.length >= want) break;
@@ -347,13 +372,16 @@ export function pickRound(
   cards: Record<string, TypingCard>,
   now: number,
   practiceAnyway = false,
+  ROUND_SIZE = DEFAULT_ROUND_SIZE,
+  skipCopy = false,
 ): RoundItem[] {
+  const firstStage: Stage = skipCopy ? 1 : 0;
   const due = passages
     .filter((p) => cards[p.id] && cards[p.id]!.due <= now)
     .sort((a, b) => cards[b.id]!.stage - cards[a.id]!.stage || cards[a.id]!.due - cards[b.id]!.due);
   const round: RoundItem[] = due
     .slice(0, ROUND_SIZE)
-    .map((p) => ({ passage: p, stage: cards[p.id]!.stage as Stage }));
+    .map((p) => ({ passage: p, stage: Math.max(firstStage, cards[p.id]!.stage) as Stage }));
 
   if (round.length < ROUND_SIZE) {
     const bySource = new Map<string, Passage[]>();
@@ -367,7 +395,7 @@ export function pickRound(
     while (round.length < ROUND_SIZE && queues.some((q) => q.length)) {
       for (const q of queues) {
         const p = q.shift();
-        if (p && round.length < ROUND_SIZE) round.push({ passage: p, stage: 0 });
+        if (p && round.length < ROUND_SIZE) round.push({ passage: p, stage: firstStage });
       }
     }
   }
@@ -422,4 +450,109 @@ export function when(t: number, now: number): string {
   if (ms < DAY) return `in ${Math.round(ms / HOUR)} h`;
   const days = Math.round(ms / DAY);
   return days === 1 ? "tomorrow" : `in ${days} days`;
+}
+
+/* ------------------------------------------------------- free practice --- */
+
+function shuffle<T>(xs: T[]): T[] {
+  const a = [...xs];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j]!, a[i]!];
+  }
+  return a;
+}
+
+/** Random passages to copy for speed, without touching the schedule. */
+export function speedRound(passages: Passage[], size: number): RoundItem[] {
+  return shuffle(passages)
+    .slice(0, size)
+    .map((p) => ({ passage: p, stage: 0 as Stage, free: true }));
+}
+
+/** Copy drills built from real words in your sources that use the given
+ *  characters (your weak keys), or from the given words (your slow words). */
+export function drillRound(
+  passages: Passage[],
+  opts: { keys?: string[]; words?: string[] },
+  size: number,
+): RoundItem[] {
+  let pool: string[];
+  if (opts.words?.length) {
+    pool = opts.words;
+  } else {
+    const keys = (opts.keys ?? []).filter((k) => k.trim());
+    const all = new Set<string>();
+    for (const p of passages)
+      for (const w of words(p.text)) {
+        const bare = w.replace(/[^\p{L}\p{N}'-]/gu, "");
+        if (bare.length >= 3 && keys.some((k) => bare.toLowerCase().includes(k)))
+          all.add(bare.toLowerCase());
+      }
+    pool = [...all];
+  }
+  if (!pool.length) return [];
+  const out: RoundItem[] = [];
+  for (let n = 0; n < size; n++) {
+    const line: string[] = [];
+    while (line.length < 12) line.push(...shuffle(pool));
+    const text = line.slice(0, 12).join(" ");
+    out.push({
+      passage: { id: `drill-${n}-${Date.now()}`, sourceId: "drill", sourceTitle: "Drill", text },
+      stage: 0,
+      free: true,
+    });
+  }
+  return out;
+}
+
+/** One long run of text for a timed sprint. */
+export function sprintText(passages: Passage[], minChars = 2400): string {
+  const parts: string[] = [];
+  let len = 0;
+  const pool = shuffle(passages);
+  for (let i = 0; len < minChars && pool.length; i++) {
+    const p = pool[i % pool.length]!;
+    parts.push(p.text);
+    len += p.text.length + 1;
+  }
+  return parts.join(" ");
+}
+
+/** What you actually type, after the strictness settings. */
+export function typeable(text: string, ignorePunctuation: boolean): string {
+  if (!ignorePunctuation) return text;
+  return text
+    .replace(/[^\p{L}\p{N}\s'-]/gu, " ")
+    .replace(/(^|\s)['-]+|['-]+(?=\s|$)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Per-day speed and minutes for the last `n` days, oldest first. */
+export function history(days: Record<string, TypingDay>, now: number, n = 14) {
+  const out: { key: string; label: string; minutes: number; wpm: number }[] = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const t = now - i * DAY;
+    const d = days[dayKey(t)];
+    out.push({
+      key: dayKey(t),
+      label: new Date(t).toLocaleDateString(undefined, { weekday: "short", day: "numeric" }),
+      minutes: d ? d.ms / 60_000 : 0,
+      wpm: d && d.ms ? wpm(d.chars, d.ms) : 0,
+    });
+  }
+  return out;
+}
+
+/** Started / learned / total passages for one source. */
+export function sourceProgress(passages: Passage[], cards: Record<string, TypingCard>) {
+  let started = 0;
+  let learned = 0;
+  for (const p of passages) {
+    const c = cards[p.id];
+    if (c) started++;
+    if (c && c.box >= 1) learned++;
+  }
+  return { started, learned, total: passages.length };
 }

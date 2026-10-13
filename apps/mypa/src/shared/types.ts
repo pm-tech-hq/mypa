@@ -226,7 +226,46 @@ export interface TypingSettings {
   /** Misses by the character that should have been typed. */
   typingKeys: Record<string, number>;
   typingBestWpm: number;
+  /** Best sprint speed by sprint length in seconds. */
+  typingSprintBest: Record<string, number>;
+  typingPrefs: Partial<TypingPrefs>;
 }
+
+export interface TypingPrefs {
+  /** Home tab: the learning ladder, free speed practice, or timed sprints. */
+  tab: "learn" | "speed" | "sprint";
+  roundSize: number;
+  length: "short" | "medium" | "long";
+  gapDensity: "few" | "some" | "many";
+  /** Start new passages at Fill the gaps. */
+  skipCopy: boolean;
+  /** A wrong key isn't accepted; fix it before moving on. */
+  stopOnError: boolean;
+  ignoreCase: boolean;
+  ignorePunctuation: boolean;
+  /** Minutes per day; 0 = no goal. */
+  dailyGoalMin: number;
+  fontSize: "s" | "m" | "l";
+  showLive: boolean;
+  sounds: boolean;
+  sprintSeconds: number;
+}
+
+export const DEFAULT_TYPING_PREFS: TypingPrefs = {
+  tab: "learn",
+  roundSize: 5,
+  length: "medium",
+  gapDensity: "some",
+  skipCopy: false,
+  stopOnError: false,
+  ignoreCase: false,
+  ignorePunctuation: false,
+  dailyGoalMin: 10,
+  fontSize: "m",
+  showLive: true,
+  sounds: false,
+  sprintSeconds: 60,
+};
 
 export type WidgetSettings = Partial<
   TodoSettings &

@@ -1,66 +1,63 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { BookOpen, ChevronDown, Flame, Keyboard, X } from "lucide-react";
+import { BookOpen, Check, ChevronDown, Flame, Keyboard, Play, Timer, X, Zap } from "lucide-react";
 
-import type { TypingCard, TypingDay, WidgetRow } from "../../../shared/types";
+import {
+  DEFAULT_TYPING_PREFS,
+  type TypingCard,
+  type TypingDay,
+  type TypingPrefs,
+  type WidgetRow,
+} from "../../../shared/types";
 import { useReadyStore } from "../lib/store";
 import {
   collectSources,
   dayKey,
-  gapRanges,
+  drillRound,
+  history,
   nextCard,
   nextDue,
   PASS,
   passagesOf,
   pickRound,
-  recallCueLength,
-  ROUND_SIZE,
-  scoreRecall,
+  sourceProgress,
+  speedRound,
+  sprintText,
   STAGE_HINT,
   STAGE_LABEL,
   streak,
+  typeable,
   when,
-  words,
   wpm,
-  type RecallResult,
   type RoundItem,
   type Stage,
 } from "../lib/typing";
 import "../styles/typing.css";
+import { Recall, Typer, type Attempt } from "./TypingPlay";
 import { Button } from "./ui/button";
 
-/** What one finished passage produced. */
-interface Attempt {
-  stage: Stage;
-  score: number;
-  ms: number;
-  /** copy and gaps only */
-  chars?: number;
-  keystrokes?: number;
-  errors?: number;
-  missed?: Record<string, number>;
-  /** gaps: hidden words typed right / hidden words */
-  gaps?: [number, number];
-  /** recall: key words recalled / key words */
-  recalled?: [number, number];
-}
-
 const MAX_HUMAN_WPM = 250;
+const SPRINTS = [30, 60, 120];
 
 const EMPTY_DAY: TypingDay = { ms: 0, chars: 0, keystrokes: 0, errors: 0, passages: 0 };
+
+type Round = { items: RoundItem[]; kind: "learn" | "speed" | "drill" | "sprint" };
 
 /**
  * A typing trainer over your own transcripts and notes. Each passage climbs
  * three steps — copy it, fill in hidden words, recall it from a cue — and
  * comes back on a widening schedule, so you get faster and remember more.
+ * Speed practice, drills and timed sprints sit alongside for pure speed.
  */
 export function TypingWidget({ widget }: { widget: WidgetRow }) {
   const { snapshot, actions } = useReadyStore();
   const s = widget.settings;
+  const prefs: TypingPrefs = { ...DEFAULT_TYPING_PREFS, ...s.typingPrefs };
   const chosen = s.typingSources ?? null;
   const cards = useMemo(() => s.typingCards ?? {}, [s.typingCards]);
   const days = useMemo(() => s.typingDays ?? {}, [s.typingDays]);
   const keys = useMemo(() => s.typingKeys ?? {}, [s.typingKeys]);
+  const sprintBest = s.typingSprintBest ?? {};
   const best = s.typingBestWpm ?? 0;
 
   const sources = useMemo(
@@ -71,11 +68,18 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
     () => (chosen === null ? sources : sources.filter((x) => chosen.includes(x.id))),
     [sources, chosen],
   );
-  const passages = useMemo(() => selected.flatMap(passagesOf), [selected]);
+  const bySource = useMemo(
+    () => new Map(sources.map((x) => [x.id, passagesOf(x, prefs.length)])),
+    [sources, prefs.length],
+  );
+  const passages = useMemo(
+    () => selected.flatMap((x) => bySource.get(x.id) ?? []),
+    [selected, bySource],
+  );
 
   const [now, setNow] = useState(() => Date.now());
   const [sourcesOpen, setSourcesOpen] = useState(false);
-  const [round, setRound] = useState<RoundItem[] | null>(null);
+  const [round, setRound] = useState<Round | null>(null);
   const [index, setIndex] = useState(0);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [current, setCurrent] = useState<Attempt | null>(null);
@@ -87,17 +91,29 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
     return () => window.clearInterval(t);
   }, [round]);
 
-  const upNext = useMemo(() => pickRound(passages, cards, now), [passages, cards, now]);
+  const setPrefs = (patch: Partial<TypingPrefs>) =>
+    void actions.updateWidgetSettings(widget.id, { typingPrefs: { ...s.typingPrefs, ...patch } });
+
+  const upNext = useMemo(
+    () => pickRound(passages, cards, now, false, prefs.roundSize, prefs.skipCopy),
+    [passages, cards, now, prefs.roundSize, prefs.skipCopy],
+  );
   const reviews = upNext.filter((r) => cards[r.passage.id]).length;
   const fresh = upNext.length - reviews;
   const soonest = useMemo(() => nextDue(passages, cards), [passages, cards]);
-  const learned = passages.filter((p) => (cards[p.id]?.box ?? 0) >= 2).length;
+  const progress = sourceProgress(passages, cards);
   const today = days[dayKey(now)] ?? EMPTY_DAY;
   const run = streak(days, now);
+  const chart = useMemo(() => history(days, now, 14), [days, now]);
+  const week = chart.slice(-7).filter((d) => d.wpm > 0 && d.wpm <= MAX_HUMAN_WPM);
+  const weekWpm = week.length ? Math.round(week.reduce((n, d) => n + d.wpm, 0) / week.length) : 0;
   const weakKeys = Object.entries(keys)
-    .filter(([, n]) => n >= 3)
+    .filter(([k, n]) => n >= 3 && k.trim())
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+    .slice(0, 5)
+    .map(([k]) => k);
+  const goalMin = prefs.dailyGoalMin;
+  const todayMin = today.ms / 60_000;
 
   const toggleSource = (id: string) => {
     const cur = chosen ?? sources.map((x) => x.id);
@@ -107,16 +123,39 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
     });
   };
 
-  const start = (practiceAnyway = false) => {
-    const t = Date.now();
-    const r = pickRound(passages, cards, t, practiceAnyway);
-    if (!r.length) return;
-    setNow(t);
-    setRound(r);
+  const begin = (items: RoundItem[], kind: Round["kind"]) => {
+    if (!items.length) return;
+    setNow(Date.now());
+    setRound({ items, kind });
     setIndex(0);
     setAttempts([]);
     setCurrent(null);
   };
+
+  const startLearn = (practiceAnyway = false, from = passages) =>
+    begin(
+      pickRound(from, cards, Date.now(), practiceAnyway, prefs.roundSize, prefs.skipCopy),
+      "learn",
+    );
+  const startSpeed = () => begin(speedRound(passages, prefs.roundSize), "speed");
+  const startDrill = (opts: { keys?: string[]; words?: string[] }) =>
+    begin(drillRound(passages, opts, Math.min(3, prefs.roundSize)), "drill");
+  const startSprint = () =>
+    begin(
+      [
+        {
+          passage: {
+            id: `sprint-${Date.now()}`,
+            sourceId: "sprint",
+            sourceTitle: `${prefs.sprintSeconds}-second sprint`,
+            text: sprintText(passages),
+          },
+          stage: 0,
+          free: true,
+        },
+      ],
+      "sprint",
+    );
 
   const quit = () => {
     setRound(null);
@@ -124,17 +163,19 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
     setNow(Date.now());
   };
 
-  /** Saves one attempt: the passage's schedule, today's totals, missed keys. */
+  /** Saves one attempt: the passage's schedule, today's totals, missed keys, bests. */
   const record = (item: RoundItem, a: Attempt) => {
     const t = Date.now();
-    const card: TypingCard = nextCard(cards[item.passage.id], item.stage, a.score, t);
     const key = dayKey(t);
     const d = days[key] ?? EMPTY_DAY;
     const nextKeys = { ...keys };
     for (const [k, n] of Object.entries(a.missed ?? {})) nextKeys[k] = (nextKeys[k] ?? 0) + n;
     const speed = a.chars !== undefined ? wpm(a.chars, a.ms) : 0;
-    void actions.updateWidgetSettings(widget.id, {
-      typingCards: { ...cards, [item.passage.id]: card },
+    const accurate = !!a.keystrokes && (a.keystrokes - (a.errors ?? 0)) / a.keystrokes >= 0.95;
+    // A lucky burst doesn't count, and neither does text that arrived faster
+    // than anyone types (autofill, IME).
+    const believable = accurate && speed <= MAX_HUMAN_WPM;
+    const patch: Parameters<typeof actions.updateWidgetSettings>[1] = {
       typingDays: {
         ...days,
         [key]: {
@@ -146,22 +187,38 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
         },
       },
       typingKeys: nextKeys,
-      // A whole passage at 95%+ accuracy counts; a lucky burst doesn't, and
-      // neither does text that arrived faster than anyone types (autofill, IME).
-      typingBestWpm:
-        a.keystrokes &&
-        (a.keystrokes - (a.errors ?? 0)) / a.keystrokes >= 0.95 &&
-        speed <= MAX_HUMAN_WPM
-          ? Math.max(best, speed)
-          : best,
-    });
-    setCurrent(a);
-    setAttempts((xs) => [...xs, a]);
+    };
+    if (!item.free) {
+      const card: TypingCard = nextCard(cards[item.passage.id], item.stage, a.score, t);
+      patch.typingCards = { ...cards, [item.passage.id]: card };
+    }
+    let newBest = false;
+    if (a.sprint) {
+      if (believable && speed > (sprintBest[a.sprint] ?? 0)) {
+        patch.typingSprintBest = { ...sprintBest, [a.sprint]: speed };
+        newBest = true;
+      }
+    } else if (believable && speed > best && speed > 0) {
+      patch.typingBestWpm = speed;
+      newBest = true;
+    }
+    void actions.updateWidgetSettings(widget.id, patch);
+    const done = { ...a, newBest };
+    setCurrent(done);
+    setAttempts((xs) => [...xs, done]);
   };
 
   const next = () => {
     setCurrent(null);
     setIndex((i) => i + 1);
+  };
+
+  const fontClass = `typ typ--fs-${prefs.fontSize}`;
+  const options = {
+    stopOnError: prefs.stopOnError,
+    ignoreCase: prefs.ignoreCase,
+    sounds: prefs.sounds,
+    showLive: prefs.showLive,
   };
 
   /* ---------------------------------------------------------------- views */
@@ -182,23 +239,39 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
     );
   }
 
-  if (round && index < round.length) {
-    const item = round[index]!;
+  /* ----- playing ----- */
+  if (round && index < round.items.length) {
+    const item = round.items[index]!;
+    const isSprint = round.kind === "sprint";
+    const label = isSprint
+      ? "Sprint"
+      : round.kind === "drill"
+        ? "Drill"
+        : round.kind === "speed"
+          ? "Speed"
+          : STAGE_LABEL[item.stage];
+    const text = typeable(item.passage.text, prefs.ignorePunctuation);
     return (
-      <div className="typ">
+      <div className={fontClass}>
         <div className="typ__bar">
+          {round.items.length > 1 && (
+            <span
+              className="typ__progress num"
+              aria-label={`Passage ${index + 1} of ${round.items.length}`}
+            >
+              {round.items.map((r, i) => (
+                <i
+                  key={r.passage.id}
+                  className={i < index ? "is-done" : i === index ? "is-current" : undefined}
+                />
+              ))}
+            </span>
+          )}
           <span
-            className="typ__progress num"
-            aria-label={`Passage ${index + 1} of ${round.length}`}
+            className={`typ__stage typ__stage--${round.kind === "learn" ? item.stage : "free"}`}
           >
-            {round.map((r, i) => (
-              <i
-                key={r.passage.id}
-                className={i < index ? "is-done" : i === index ? "is-current" : undefined}
-              />
-            ))}
+            {label}
           </span>
-          <span className={`typ__stage typ__stage--${item.stage}`}>{STAGE_LABEL[item.stage]}</span>
           <span className="typ__from" title={item.passage.sourceTitle}>
             {item.passage.sourceTitle}
           </span>
@@ -212,9 +285,17 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
             <X size={14} />
           </button>
         </div>
-        <p className="typ__hint">{STAGE_HINT[item.stage]}</p>
+        <p className="typ__hint">
+          {isSprint
+            ? "Type as much as you can before the clock runs out. It starts on your first key."
+            : round.kind === "drill"
+              ? "Real words from your sources that use the keys you want to practise."
+              : round.kind === "speed"
+                ? "Copy it as fast and clean as you can."
+                : STAGE_HINT[item.stage]}
+        </p>
 
-        {item.stage === 2 ? (
+        {item.stage === 2 && !item.free ? (
           <Recall
             key={`${index}-${item.passage.id}`}
             text={item.passage.text}
@@ -224,8 +305,10 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
         ) : (
           <Typer
             key={`${index}-${item.passage.id}`}
-            text={item.passage.text}
-            gaps={item.stage === 1}
+            text={text}
+            gaps={item.stage === 1 && !item.free ? prefs.gapDensity : null}
+            options={options}
+            timeLimitMs={isSprint ? prefs.sprintSeconds * 1000 : undefined}
             onDone={(a) => record(item, a)}
           />
         )}
@@ -234,14 +317,16 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
           <div className="typ__result" role="status">
             <span
               className={
-                current.score >= PASS[item.stage] ? "typ__verdict is-pass" : "typ__verdict"
+                resultPass(round.kind, item.stage, current)
+                  ? "typ__verdict is-pass"
+                  : "typ__verdict"
               }
             >
-              {verdict(item.stage, current)}
+              {verdict(round.kind, item.stage, current)}
             </span>
             <span className="typ__result-detail num">{detail(current)}</span>
             <Button size="sm" autoFocus onClick={next}>
-              {index + 1 < round.length ? "Next" : "Finish"}
+              {index + 1 < round.items.length ? "Next" : "Finish"}
             </Button>
           </div>
         )}
@@ -249,6 +334,7 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
     );
   }
 
+  /* ----- summary ----- */
   if (round) {
     const typed = attempts.filter((a) => a.chars !== undefined);
     const ms = typed.reduce((n, a) => n + a.ms, 0);
@@ -257,10 +343,13 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
     const errors = typed.reduce((n, a) => n + (a.errors ?? 0), 0);
     const recalls = attempts.filter((a) => a.recalled);
     const moved = attempts.filter((a) => a.score >= PASS[a.stage]).length;
+    const slow = slowestWords(attempts);
     return (
-      <div className="typ">
+      <div className={fontClass}>
         <div className="typ__summary">
-          <p className="typ__summary-title">Round done</p>
+          <p className="typ__summary-title">
+            {round.kind === "sprint" ? "Sprint done" : "Round done"}
+          </p>
           <dl className="typ__figures">
             {typed.length > 0 && (
               <>
@@ -284,19 +373,58 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
                 </dd>
               </div>
             )}
-            <div>
-              <dt>Moved up</dt>
-              <dd className="num">
-                {moved} of {attempts.length}
-              </dd>
-            </div>
+            {round.kind === "learn" && (
+              <div>
+                <dt>Moved up</dt>
+                <dd className="num">
+                  {moved} of {attempts.length}
+                </dd>
+              </div>
+            )}
+            {round.kind === "sprint" && (
+              <div>
+                <dt>Best {prefs.sprintSeconds}s</dt>
+                <dd className="num">{sprintBest[prefs.sprintSeconds] ?? 0} wpm</dd>
+              </div>
+            )}
           </dl>
+
+          {slow.length > 0 && (
+            <div className="typ__slow">
+              <span>Slowest words</span>
+              <div>
+                {slow.map((w) => (
+                  <kbd key={w}>{w}</kbd>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="typ__link"
+                onClick={() => startDrill({ words: slow })}
+              >
+                Drill these
+              </button>
+            </div>
+          )}
+
           <div className="typ__summary-actions">
             <Button variant="outline" size="sm" onClick={quit}>
               Done
             </Button>
-            <Button size="sm" autoFocus onClick={() => start(true)}>
-              Another round
+            <Button
+              size="sm"
+              autoFocus
+              onClick={() =>
+                round.kind === "sprint"
+                  ? startSprint()
+                  : round.kind === "speed"
+                    ? startSpeed()
+                    : round.kind === "drill"
+                      ? startDrill(slow.length ? { words: slow } : { keys: weakKeys })
+                      : startLearn(true)
+              }
+            >
+              {round.kind === "sprint" ? "Sprint again" : "Another round"}
             </Button>
           </div>
         </div>
@@ -304,8 +432,9 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
     );
   }
 
+  /* ----- home ----- */
   return (
-    <div className="typ">
+    <div className={fontClass}>
       <button
         type="button"
         className="typ__sources-toggle"
@@ -321,55 +450,168 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
       </button>
       {sourcesOpen && (
         <div className="typ__sources">
-          {sources.map((x) => (
-            <label key={x.id}>
-              <input
-                type="checkbox"
-                checked={chosen === null || chosen.includes(x.id)}
-                onChange={() => toggleSource(x.id)}
-              />
-              <span>{x.title}</span>
-              <em>{x.kind === "note" ? "Note" : "Transcript"}</em>
-            </label>
-          ))}
+          {sources.map((x) => {
+            const ps = bySource.get(x.id) ?? [];
+            const pr = sourceProgress(ps, cards);
+            const on = chosen === null || chosen.includes(x.id);
+            return (
+              <div key={x.id} className="typ__source">
+                <label>
+                  <input type="checkbox" checked={on} onChange={() => toggleSource(x.id)} />
+                  <span>{x.title}</span>
+                </label>
+                <em className="num" title={`${pr.started} started, ${pr.learned} learned`}>
+                  {x.kind === "note" ? "Note" : "Transcript"} · {pr.learned}/{pr.total}
+                </em>
+                <button
+                  type="button"
+                  className="typ__source-go"
+                  disabled={!ps.length}
+                  aria-label={`Practise ${x.title} now`}
+                  title="Practise this one now"
+                  onClick={() => startLearn(true, ps)}
+                >
+                  <Play size={11} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 
+      {goalMin > 0 && (
+        <div className="typ__goal">
+          <span className="typ__goal-label num">
+            {todayMin >= goalMin ? (
+              <>
+                <Check size={12} aria-hidden="true" /> Daily goal met
+              </>
+            ) : (
+              <>
+                {Math.floor(todayMin)} of {goalMin} min today
+              </>
+            )}
+          </span>
+          <span className="typ__goal-track" aria-hidden="true">
+            <span style={{ width: `${Math.min(100, (todayMin / goalMin) * 100)}%` }} />
+          </span>
+        </div>
+      )}
+
+      <div className="seg typ__tabs" role="tablist" aria-label="Practice">
+        {(
+          [
+            ["learn", "Learn", BookOpen],
+            ["speed", "Speed", Zap],
+            ["sprint", "Sprint", Timer],
+          ] as const
+        ).map(([id, name, Icon]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={prefs.tab === id}
+            className={`seg__btn${prefs.tab === id ? " is-active" : ""}`}
+            onClick={() => setPrefs({ tab: id })}
+          >
+            <Icon size={13} />
+            {name}
+          </button>
+        ))}
+      </div>
+
       <div className="typ__home">
-        {upNext.length > 0 ? (
-          <>
-            <p className="typ__lead">
-              {reviews > 0 && fresh > 0
-                ? `${reviews} to review, ${fresh} new`
-                : reviews > 0
-                  ? `${reviews} to review`
-                  : `${fresh} new passage${fresh === 1 ? "" : "s"}`}
-            </p>
-            <p className="typ__sub">
-              A round is up to {ROUND_SIZE} short passages, about two minutes.
-            </p>
-            <figure className="typ__peek">
-              <figcaption>
-                Up first · {STAGE_LABEL[upNext[0]!.stage]} · {upNext[0]!.passage.sourceTitle}
-              </figcaption>
-              <p>{upNext[0]!.passage.text}</p>
-            </figure>
-            <Button onClick={() => start()}>Start round</Button>
-          </>
-        ) : passages.length === 0 ? (
+        {passages.length === 0 ? (
           <>
             <p className="typ__lead">Nothing long enough to practise</p>
-            <p className="typ__sub">Pick more sources above, or add a longer note or transcript.</p>
+            <p className="typ__sub">
+              Pick more sources above, choose shorter passages in settings, or add a longer note.
+            </p>
+          </>
+        ) : prefs.tab === "learn" ? (
+          upNext.length > 0 ? (
+            <>
+              <p className="typ__lead">
+                {reviews > 0 && fresh > 0
+                  ? `${reviews} to review, ${fresh} new`
+                  : reviews > 0
+                    ? `${reviews} to review`
+                    : `${fresh} new passage${fresh === 1 ? "" : "s"}`}
+              </p>
+              <p className="typ__sub">
+                Copy, fill the gaps, then recall from memory. Each passage comes back on a widening
+                schedule.
+              </p>
+              <figure className="typ__peek">
+                <figcaption>
+                  Up first · {STAGE_LABEL[upNext[0]!.stage]} · {upNext[0]!.passage.sourceTitle}
+                </figcaption>
+                <p>{upNext[0]!.passage.text}</p>
+              </figure>
+              <Button onClick={() => startLearn()}>Start round</Button>
+            </>
+          ) : (
+            <>
+              <p className="typ__lead">All caught up</p>
+              <p className="typ__sub">
+                {soonest !== null ? `The next review is ${when(soonest, now)}.` : "Nothing is due."}
+              </p>
+              <Button variant="outline" onClick={() => startLearn(true)}>
+                Practise anyway
+              </Button>
+            </>
+          )
+        ) : prefs.tab === "speed" ? (
+          <>
+            <p className="typ__lead">Type for speed</p>
+            <p className="typ__sub">
+              Random passages to copy. This doesn't change what you're learning.
+            </p>
+            <div className="typ__home-actions">
+              <Button onClick={startSpeed}>
+                Start {Math.min(prefs.roundSize, passages.length)} passages
+              </Button>
+              {weakKeys.length > 0 && (
+                <Button variant="outline" onClick={() => startDrill({ keys: weakKeys })}>
+                  Drill weak keys
+                </Button>
+              )}
+            </div>
+            {weakKeys.length > 0 && (
+              <p className="typ__keys">
+                <span>Keys you miss most</span>
+                {weakKeys.map((k) => (
+                  <kbd key={k}>{k}</kbd>
+                ))}
+              </p>
+            )}
           </>
         ) : (
           <>
-            <p className="typ__lead">All caught up</p>
+            <p className="typ__lead">{prefs.sprintSeconds}-second sprint</p>
             <p className="typ__sub">
-              {soonest !== null ? `The next review is ${when(soonest, now)}.` : "Nothing is due."}
+              One long run of your own text against the clock.{" "}
+              {sprintBest[prefs.sprintSeconds]
+                ? `Your best is ${sprintBest[prefs.sprintSeconds]} wpm.`
+                : "No best yet."}
             </p>
-            <Button variant="outline" onClick={() => start(true)}>
-              Practise anyway
-            </Button>
+            <div className="typ__home-actions">
+              <div className="seg" role="radiogroup" aria-label="Sprint length">
+                {SPRINTS.map((sec) => (
+                  <button
+                    key={sec}
+                    type="button"
+                    role="radio"
+                    aria-checked={prefs.sprintSeconds === sec}
+                    className={`seg__btn${prefs.sprintSeconds === sec ? " is-active" : ""}`}
+                    onClick={() => setPrefs({ sprintSeconds: sec })}
+                  >
+                    {sec < 60 ? `${sec}s` : `${sec / 60} min`}
+                  </button>
+                ))}
+              </div>
+              <Button onClick={startSprint}>Start sprint</Button>
+            </div>
           </>
         )}
       </div>
@@ -383,12 +625,8 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
           </dd>
         </div>
         <div>
-          <dt>Today</dt>
-          <dd className="num">
-            {today.ms > 0 && today.ms < 60_000
-              ? "Under 1 min"
-              : `${Math.round(today.ms / 60_000)} min`}
-          </dd>
+          <dt>This week</dt>
+          <dd className="num">{weekWpm ? `${weekWpm} wpm` : "–"}</dd>
         </div>
         <div>
           <dt>Best</dt>
@@ -397,24 +635,86 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
         <div>
           <dt>Learned</dt>
           <dd className="num">
-            {learned} of {passages.length}
+            {progress.learned} of {progress.total}
           </dd>
         </div>
       </dl>
 
-      {weakKeys.length > 0 && (
-        <p className="typ__keys">
-          <span>Keys you miss most</span>
-          {weakKeys.map(([k]) => (
-            <kbd key={k}>{k === " " ? "space" : k}</kbd>
-          ))}
-        </p>
-      )}
+      <Chart data={chart} goal={goalMin} />
     </div>
   );
 }
 
-function verdict(stage: Stage, a: Attempt): string {
+/* ------------------------------------------------------------ helpers ---- */
+
+function Chart({
+  data,
+  goal,
+}: {
+  data: { key: string; label: string; minutes: number; wpm: number }[];
+  goal: number;
+}) {
+  const top = Math.max(goal, ...data.map((d) => d.minutes), 1);
+  const active = data.filter((d) => d.minutes > 0).length;
+  return (
+    <figure className="typ__chart">
+      <figcaption>
+        <span>Last 14 days</span>
+        <span className="num">
+          {active} {active === 1 ? "day" : "days"} practised
+        </span>
+      </figcaption>
+      <div
+        className="typ__bars"
+        role="img"
+        aria-label={`Practised on ${active} of the last 14 days`}
+      >
+        {goal > 0 && <i className="typ__goal-line" style={{ bottom: `${(goal / top) * 100}%` }} />}
+        {data.map((d) => (
+          <span
+            key={d.key}
+            className={d.minutes >= goal && goal > 0 ? "is-met" : undefined}
+            title={
+              d.minutes > 0
+                ? `${d.label}: ${Math.max(1, Math.round(d.minutes))} min, ${d.wpm} wpm`
+                : `${d.label}: no practice`
+            }
+          >
+            <i style={{ height: `${Math.max(d.minutes > 0 ? 8 : 0, (d.minutes / top) * 100)}%` }} />
+          </span>
+        ))}
+      </div>
+    </figure>
+  );
+}
+
+/** The three words that took longest per character across the round. */
+function slowestWords(attempts: Attempt[]): string[] {
+  const times = new Map<string, number[]>();
+  for (const a of attempts)
+    for (const [w, ms] of a.wordTimes ?? []) times.set(w, [...(times.get(w) ?? []), ms]);
+  const avg = [...times.entries()].map(
+    ([w, xs]) => [w, xs.reduce((n, x) => n + x, 0) / xs.length] as const,
+  );
+  if (avg.length < 6) return [];
+  return avg
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([w]) => w);
+}
+
+function resultPass(kind: Round["kind"], stage: Stage, a: Attempt): boolean {
+  if (kind !== "learn")
+    return !!a.keystrokes && (a.keystrokes - (a.errors ?? 0)) / a.keystrokes >= 0.95;
+  return a.score >= PASS[stage];
+}
+
+function verdict(kind: Round["kind"], stage: Stage, a: Attempt): string {
+  if (kind === "sprint") return a.newBest ? "New best sprint" : "Time";
+  if (kind !== "learn") {
+    if (a.newBest) return "New best speed";
+    return resultPass(kind, stage, a) ? "Clean" : "Watch the mistakes";
+  }
   const passed = a.score >= PASS[stage];
   if (stage === 0)
     return passed ? "Next time: fill the gaps" : "Again soon, a little more carefully";
@@ -425,7 +725,8 @@ function verdict(stage: Stage, a: Attempt): string {
 function detail(a: Attempt): string {
   const parts: string[] = [];
   if (a.gaps) parts.push(`${a.gaps[0]} of ${a.gaps[1]} hidden words`);
-  if (a.recalled) parts.push(`${a.recalled[0]} of ${a.recalled[1]} key words`);
+  if (a.recalled)
+    parts.push(`${a.recalled[0]} of ${a.recalled[1]} key words${a.hinted ? " (with a hint)" : ""}`);
   if (a.chars !== undefined) {
     parts.push(`${wpm(a.chars, a.ms)} wpm`);
     if (a.keystrokes)
@@ -434,247 +735,4 @@ function detail(a: Attempt): string {
       );
   }
   return parts.join(" · ");
-}
-
-/* ------------------------------------------------------------- typing ---- */
-
-function Typer({
-  text,
-  gaps,
-  onDone,
-}: {
-  text: string;
-  gaps: boolean;
-  onDone: (a: Attempt) => void;
-}) {
-  const [typed, setTyped] = useState("");
-  const [focused, setFocused] = useState(true);
-  const input = useRef<HTMLTextAreaElement>(null);
-  const started = useRef<number | null>(null);
-  const strokes = useRef(0);
-  const errors = useRef(0);
-  const missed = useRef<Record<string, number>>({});
-  const finished = useRef(false);
-  const [, tick] = useState(0);
-
-  const ranges = useMemo(() => (gaps ? gapRanges(text) : []), [text, gaps]);
-  const hidden = useMemo(() => {
-    const h = new Uint8Array(text.length);
-    for (const [a, b] of ranges) h.fill(1, a, b);
-    return h;
-  }, [text, ranges]);
-
-  useEffect(() => input.current?.focus(), []);
-
-  // Refresh the live speed once a second while typing.
-  useEffect(() => {
-    const t = window.setInterval(() => {
-      if (started.current && !finished.current) tick((n) => n + 1);
-    }, 1000);
-    return () => window.clearInterval(t);
-  }, []);
-
-  const change = (value: string) => {
-    if (finished.current) return;
-    const v = value.replace(/\n/g, "").slice(0, text.length);
-    if (v.length > typed.length) {
-      started.current ??= Date.now();
-      for (let i = typed.length; i < v.length; i++) {
-        strokes.current++;
-        if (v[i] !== text[i]) {
-          errors.current++;
-          const k = text[i]!.toLowerCase();
-          missed.current[k] = (missed.current[k] ?? 0) + 1;
-        }
-      }
-    }
-    setTyped(v);
-    if (v.length === text.length) {
-      finished.current = true;
-      const ms = Date.now() - (started.current ?? Date.now());
-      let correct = 0;
-      for (let i = 0; i < text.length; i++) if (v[i] === text[i]) correct++;
-      const accuracy = strokes.current ? (strokes.current - errors.current) / strokes.current : 1;
-      const right = ranges.filter(
-        ([a, b]) => v.slice(a, b).toLowerCase() === text.slice(a, b).toLowerCase(),
-      ).length;
-      onDone({
-        stage: gaps ? 1 : 0,
-        score: gaps ? (ranges.length ? right / ranges.length : 1) : accuracy,
-        ms,
-        chars: correct,
-        keystrokes: strokes.current,
-        errors: errors.current,
-        missed: missed.current,
-        gaps: gaps ? [right, ranges.length] : undefined,
-      });
-    }
-  };
-
-  const elapsed = started.current ? Date.now() - started.current : 0;
-  let correctSoFar = 0;
-  for (let i = 0; i < typed.length; i++) if (typed[i] === text[i]) correctSoFar++;
-
-  const tokens = useMemo(() => {
-    const out: { start: number; text: string }[] = [];
-    const re = /\S+\s*|\s+/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(text))) out.push({ start: m.index, text: m[0] });
-    return out;
-  }, [text]);
-
-  return (
-    <div className="typ__stagebox">
-      <div
-        className={`typ__text${focused || finished.current ? "" : " is-blurred"}`}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          input.current?.focus();
-        }}
-      >
-        {tokens.map((tok) => (
-          <span key={tok.start} className="typ__word">
-            {[...tok.text].map((ch, j) => {
-              const i = tok.start + j;
-              const isHidden = hidden[i] === 1;
-              let cls = "typ__ch";
-              let shown = ch;
-              if (i < typed.length) {
-                const ok = typed[i] === ch;
-                cls += ok ? " is-ok" : " is-bad";
-                if (!ok && isHidden) shown = typed[i] === " " ? "·" : typed[i]!;
-              } else if (isHidden) {
-                cls += " is-hidden";
-              }
-              if (isHidden) cls += " is-gap";
-              if (i === typed.length && !finished.current) cls += " is-caret";
-              return (
-                <span key={j} className={cls}>
-                  {shown}
-                </span>
-              );
-            })}
-          </span>
-        ))}
-        {!focused && !finished.current && <span className="typ__resume">Click to keep typing</span>}
-      </div>
-      <textarea
-        ref={input}
-        className="typ__input"
-        value={typed}
-        aria-label={gaps ? "Type the passage, including the hidden words" : "Type the passage"}
-        autoCapitalize="off"
-        autoCorrect="off"
-        autoComplete="off"
-        spellCheck={false}
-        onChange={(e) => change(e.target.value)}
-        onPaste={(e) => e.preventDefault()}
-        onDrop={(e) => e.preventDefault()}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.preventDefault();
-        }}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-      />
-      <p className="typ__live num" aria-hidden="true">
-        <span>{wpm(correctSoFar, elapsed)} wpm</span>
-        <span>
-          {strokes.current
-            ? Math.round(((strokes.current - errors.current) / strokes.current) * 100)
-            : 100}
-          %
-        </span>
-        <span>
-          {words(typed).length} / {words(text).length} words
-        </span>
-      </p>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------- recall ---- */
-
-function Recall({
-  text,
-  done,
-  onDone,
-}: {
-  text: string;
-  done: boolean;
-  onDone: (a: Attempt) => void;
-}) {
-  const [answer, setAnswer] = useState("");
-  const [result, setResult] = useState<RecallResult | null>(null);
-  const opened = useRef(Date.now());
-  const input = useRef<HTMLTextAreaElement>(null);
-  const cue = words(text).slice(0, recallCueLength(text)).join(" ");
-
-  useEffect(() => input.current?.focus(), []);
-
-  const check = (giveUp = false) => {
-    if (result) return;
-    const r = scoreRecall(text, giveUp ? "" : answer);
-    setResult(r);
-    const content = r.marks.filter((m) => m.content);
-    onDone({
-      stage: 2,
-      score: r.score,
-      ms: Date.now() - opened.current,
-      recalled: [content.filter((m) => m.got).length, content.length],
-    });
-  };
-
-  if (result) {
-    return (
-      <div className="typ__stagebox">
-        <p className="typ__reveal">
-          <span className="typ__cue">{cue} </span>
-          {result.marks.map((m, i) => (
-            <span
-              key={i}
-              className={m.content ? (m.got ? "typ__w is-got" : "typ__w is-missed") : "typ__w"}
-            >
-              {m.word}{" "}
-            </span>
-          ))}
-        </p>
-        {answer.trim() && <p className="typ__yours">You wrote: {answer.trim()}</p>}
-      </div>
-    );
-  }
-
-  return (
-    <div className="typ__stagebox">
-      <p className="typ__reveal">
-        <span className="typ__cue">{cue}</span>
-        <span className="typ__ellipsis"> …</span>
-      </p>
-      <textarea
-        ref={input}
-        className="typ__answer"
-        value={answer}
-        disabled={done}
-        placeholder="Type what comes next, in your own words if you need to."
-        aria-label="What comes next"
-        spellCheck={false}
-        onChange={(e) => setAnswer(e.target.value)}
-        onPaste={(e) => e.preventDefault()}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-            e.preventDefault();
-            check();
-          }
-        }}
-      />
-      <div className="typ__recall-actions">
-        <button type="button" className="typ__giveup" onClick={() => check(true)}>
-          Show me
-        </button>
-        <Button size="sm" disabled={!answer.trim()} onClick={() => check()}>
-          Check
-          <kbd className="typ__kbd">Ctrl ↵</kbd>
-        </Button>
-      </div>
-    </div>
-  );
 }

@@ -94,7 +94,7 @@ const DEFAULT_SIZE: Record<WidgetKind, Size> = {
   calendar: { w: 640, h: 500 },
   transcribe: { w: 480, h: 600 },
   tutor: { w: 480, h: 640 },
-  typing: { w: 560, h: 520 },
+  typing: { w: 560, h: 660 },
   blank: { w: 340, h: 240 },
   /** Placeholder only: custom widgets pass their manifest size instead. */
   custom: { w: 360, h: 320 },

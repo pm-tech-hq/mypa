@@ -919,6 +919,45 @@ select.wsettings__input {
   font-size: var(--ds-text-2xs);
 }
 
+.wsettings__section {
+  margin: 6px 0 -8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ds-border);
+  font-size: var(--ds-text-2xs);
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ds-muted);
+}
+
+.wsettings__danger {
+  appearance: none;
+  align-self: flex-start;
+  height: var(--ds-control-md);
+  padding: 0 12px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  font: inherit;
+  font-size: var(--ds-text-sm);
+  color: var(--ds-danger);
+  cursor: pointer;
+  transition:
+    background-color var(--ds-dur-fast) ease,
+    border-color var(--ds-dur-fast) ease,
+    color var(--ds-dur-fast) ease;
+}
+
+.wsettings__danger:hover {
+  border-color: var(--ds-danger);
+}
+
+.wsettings__danger.is-armed {
+  border-color: var(--ds-danger);
+  background: var(--ds-danger);
+  color: var(--ds-white);
+}
+
 .wsettings__hint {
   margin: 0;
   color: var(--ds-muted);
