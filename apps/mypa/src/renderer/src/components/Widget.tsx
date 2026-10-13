@@ -14,6 +14,7 @@ import { TrustBadge } from "./TrustBadge";
 import { TodoList } from "./TodoList";
 import { TranscribeWidget } from "./TranscribeWidget";
 import { TutorWidget } from "./TutorWidget";
+import { TypingWidget } from "./TypingWidget";
 import { WidgetSettings } from "./WidgetSettings";
 
 interface WidgetProps {
@@ -156,6 +157,7 @@ export function Widget({
         )}
         {widget.kind === "transcribe" && <TranscribeWidget widget={widget} />}
         {widget.kind === "tutor" && <TutorWidget widget={widget} />}
+        {widget.kind === "typing" && <TypingWidget widget={widget} />}
         {widget.kind === "custom" && <CustomWidget widget={widget} />}
 
         {settingsOpen && (

@@ -2,7 +2,8 @@
 
 import type { InstalledWidget } from "./widgetPlatform";
 
-export type WidgetKind = "blank" | "todo" | "calendar" | "transcribe" | "tutor" | "custom";
+export type WidgetKind =
+  "blank" | "todo" | "calendar" | "transcribe" | "tutor" | "typing" | "custom";
 export type Importance = "high" | "medium" | "low";
 export type TaskSection = "today" | "backlog";
 export type GoalHorizon = "week" | "month" | "quarter" | "year" | "someday";
@@ -195,8 +196,45 @@ export interface TranscribeSettings {
   ytdlpPath: string | null;
 }
 
+/** One passage's place in the typing trainer's review schedule. */
+export interface TypingCard {
+  /** 0 copy, 1 fill the gaps, 2 recall */
+  stage: number;
+  /** Recall box: how many spaced recalls in a row went well. */
+  box: number;
+  /** When it should come back (ms). */
+  due: number;
+  reps: number;
+}
+
+export interface TypingDay {
+  ms: number;
+  /** Correctly typed characters (copy and gaps). */
+  chars: number;
+  keystrokes: number;
+  errors: number;
+  passages: number;
+}
+
+export interface TypingSettings {
+  /** "t:<transcript id>" / "n:<note widget id>"; null = everything. */
+  typingSources: string[] | null;
+  /** By passage id. */
+  typingCards: Record<string, TypingCard>;
+  /** By local date, YYYY-MM-DD. */
+  typingDays: Record<string, TypingDay>;
+  /** Misses by the character that should have been typed. */
+  typingKeys: Record<string, number>;
+  typingBestWpm: number;
+}
+
 export type WidgetSettings = Partial<
-  TodoSettings & BlankSettings & CalendarSettings & TranscribeSettings & CustomSettings
+  TodoSettings &
+    BlankSettings &
+    CalendarSettings &
+    TranscribeSettings &
+    CustomSettings &
+    TypingSettings
 >;
 
 export const DEFAULT_TODO_SETTINGS: TodoSettings = {
@@ -304,13 +342,7 @@ export interface RetryTranscript {
 
 /* ---- labels / ordering ----------------------------------------------- */
 
-export const HORIZON_ORDER: GoalHorizon[] = [
-  "week",
-  "month",
-  "quarter",
-  "year",
-  "someday",
-];
+export const HORIZON_ORDER: GoalHorizon[] = ["week", "month", "quarter", "year", "someday"];
 
 export const HORIZON_LABEL: Record<GoalHorizon, string> = {
   week: "This week",

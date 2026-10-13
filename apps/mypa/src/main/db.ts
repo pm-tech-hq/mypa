@@ -116,7 +116,9 @@ function exportDb(): Buffer {
 function removeOrphans(): void {
   run(`DELETE FROM steps WHERE task_id NOT IN (SELECT id FROM tasks)`);
   run(`DELETE FROM widgets WHERE page_id IS NOT NULL AND page_id NOT IN (SELECT id FROM pages)`);
-  run(`UPDATE tasks SET goal_id = NULL WHERE goal_id IS NOT NULL AND goal_id NOT IN (SELECT id FROM goals)`);
+  run(
+    `UPDATE tasks SET goal_id = NULL WHERE goal_id IS NOT NULL AND goal_id NOT IN (SELECT id FROM goals)`,
+  );
   run(
     `DELETE FROM calendar_remote_events WHERE account_id NOT IN (SELECT id FROM calendar_accounts)`,
   );
@@ -434,9 +436,7 @@ function seed(): void {
         t.imp,
         t.section,
         t.done ? 1 : 0,
-        t.section === "today" && typeof t.dueDays === "number"
-          ? now + t.dueDays * DAY
-          : null,
+        t.section === "today" && typeof t.dueDays === "number" ? now + t.dueDays * DAY : null,
         i,
         now,
       ],
@@ -481,8 +481,7 @@ function migrate(): void {
   }
 
   let defaultPageId = get(`SELECT id FROM pages ORDER BY sort, created_at LIMIT 1`)?.id as
-    | string
-    | undefined;
+    string | undefined;
   if (!defaultPageId) {
     defaultPageId = randomUUID();
     run(
@@ -624,10 +623,7 @@ export function getSnapshot(): Snapshot {
 function patch(table: string, id: string, cols: [string, Cell][]): void {
   if (cols.length === 0) return;
   const setClause = cols.map(([c]) => `${c} = ?`).join(", ");
-  run(`UPDATE ${table} SET ${setClause} WHERE id = ?`, [
-    ...cols.map(([, v]) => v),
-    id,
-  ]);
+  run(`UPDATE ${table} SET ${setClause} WHERE id = ?`, [...cols.map(([, v]) => v), id]);
 }
 
 const bool = (v: unknown): number => (v ? 1 : 0);
@@ -712,14 +708,16 @@ export function createWidget(input: NewWidget): string | null {
           }
         : input.kind === "tutor"
           ? { title: "Tutor", w: 480, h: 640, settings: "{}" }
-          : input.kind === "transcribe"
-          ? {
-              title: "Transcribe",
-              w: 480,
-              h: 600,
-              settings: JSON.stringify(DEFAULT_TRANSCRIBE_SETTINGS),
-            }
-          : { title: "Note", w: 360, h: 300, settings: "{}" };
+          : input.kind === "typing"
+            ? { title: "Typing", w: 560, h: 520, settings: "{}" }
+            : input.kind === "transcribe"
+              ? {
+                  title: "Transcribe",
+                  w: 480,
+                  h: 600,
+                  settings: JSON.stringify(DEFAULT_TRANSCRIBE_SETTINGS),
+                }
+              : { title: "Note", w: 360, h: 300, settings: "{}" };
   const count = Number(
     get(`SELECT COUNT(*) c FROM widgets WHERE page_id = ?`, [input.pageId])?.c ?? 0,
   );
@@ -806,7 +804,9 @@ export function upsertInstalledWidget(input: {
   devPath: string | null;
 }): void {
   const now = Date.now();
-  const existing = get(`SELECT installed_at FROM installed_widgets WHERE id = ?`, [input.manifest.id]);
+  const existing = get(`SELECT installed_at FROM installed_widgets WHERE id = ?`, [
+    input.manifest.id,
+  ]);
   if (existing) {
     run(
       `UPDATE installed_widgets SET manifest = ?, source = ?, trust = ?, registry_url = ?,
@@ -844,7 +844,11 @@ export function setInstalledWidgetEnabled(id: string, enabled: boolean): void {
 }
 
 export function setInstalledWidgetLicense(id: string, key: string, licensee: string): void {
-  run(`UPDATE installed_widgets SET license_key = ?, licensee = ? WHERE id = ?`, [key, licensee, id]);
+  run(`UPDATE installed_widgets SET license_key = ?, licensee = ? WHERE id = ?`, [
+    key,
+    licensee,
+    id,
+  ]);
 }
 
 /** Uninstalling also removes every board instance of the widget. */
@@ -852,7 +856,8 @@ export function removeInstalledWidget(id: string): void {
   run(`DELETE FROM installed_widgets WHERE id = ?`, [id]);
   for (const w of all(`SELECT id, settings FROM widgets WHERE kind = 'custom'`)) {
     try {
-      if ((JSON.parse(String(w.settings)) as WidgetSettings).pluginId === id) deleteWidget(String(w.id));
+      if ((JSON.parse(String(w.settings)) as WidgetSettings).pluginId === id)
+        deleteWidget(String(w.id));
     } catch {
       /* unreadable settings: leave the row alone */
     }
@@ -954,8 +959,7 @@ export function createStep(input: NewStep): string {
   const id = randomUUID();
   const sort =
     Number(
-      get(`SELECT COALESCE(MAX(sort), -1) m FROM steps WHERE task_id = ?`, [input.taskId])?.m ??
-        -1,
+      get(`SELECT COALESCE(MAX(sort), -1) m FROM steps WHERE task_id = ?`, [input.taskId])?.m ?? -1,
     ) + 1;
   run(`INSERT INTO steps (id, task_id, title, done, sort) VALUES (?, ?, ?, 0, ?)`, [
     id,
@@ -1091,7 +1095,12 @@ export function createIcsAccount(label: string, feedUrl: string): string {
 
 export function completeOAuthAccount(
   id: string,
-  p: { accountEmail: string | null; refreshToken: string; accessToken: string; accessTokenExpiresAt: number },
+  p: {
+    accountEmail: string | null;
+    refreshToken: string;
+    accessToken: string;
+    accessTokenExpiresAt: number;
+  },
 ): void {
   run(
     `UPDATE calendar_accounts SET status = 'connected', error_message = NULL, account_email = ?,

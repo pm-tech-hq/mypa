@@ -2,6 +2,7 @@ import {
   AudioLines,
   CalendarDays,
   GraduationCap,
+  Keyboard,
   ListTodo,
   StickyNote,
   type LucideIcon,
@@ -42,6 +43,12 @@ export const WIDGET_KINDS: WidgetKindMeta[] = [
     label: "Tutor",
     description: "Learn from your transcripts",
     icon: GraduationCap,
+  },
+  {
+    kind: "typing",
+    label: "Typing",
+    description: "Type faster while you learn your notes",
+    icon: Keyboard,
   },
   {
     kind: "blank",
