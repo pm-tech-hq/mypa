@@ -309,10 +309,12 @@
 
 .typ__goal-track > span {
   display: block;
+  width: 100%;
   height: 100%;
   border-radius: inherit;
   background: var(--ds-accent);
-  transition: width var(--ds-dur-slow) var(--ds-ease-out);
+  transform-origin: left center;
+  transition: transform var(--ds-dur-slow) var(--ds-ease-out);
 }
 
 .typ__tabs {

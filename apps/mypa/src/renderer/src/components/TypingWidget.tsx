@@ -493,7 +493,7 @@ export function TypingWidget({ widget }: { widget: WidgetRow }) {
             )}
           </span>
           <span className="typ__goal-track" aria-hidden="true">
-            <span style={{ width: `${Math.min(100, (todayMin / goalMin) * 100)}%` }} />
+            <span style={{ transform: `scaleX(${Math.min(1, todayMin / goalMin)})` }} />
           </span>
         </div>
       )}
