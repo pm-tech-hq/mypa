@@ -1,10 +1,11 @@
 import { watch, type FSWatcher } from "node:fs";
 import { readFile } from "node:fs/promises";
 
-import { BrowserWindow, dialog, ipcMain, Notification, shell } from "electron";
+import { BrowserWindow, dialog, ipcMain, shell } from "electron";
 
 import { MARKET_IPC, type BridgeFetchResult, type MarketResult } from "../../shared/marketApi";
 import { hostAllowed } from "../../shared/widgetPlatform";
+import { notify } from "../system";
 import * as db from "../db";
 import {
   addRegistry,
@@ -209,11 +210,12 @@ export function registerMarketHandlers(): void {
       const installed = requireInstalled(widgetId);
       if (!installed.manifest.permissions.includes("notify"))
         throw new WidgetError("This widget isn't allowed to show notifications.");
-      new Notification({
+      // Skipped quietly when the user has switched notifications off.
+      notify({
         title: title.slice(0, 80) || installed.manifest.name,
         body: body.slice(0, 240),
         subtitle: installed.manifest.name,
-      }).show();
+      });
       return null;
     }),
   );

@@ -47,3 +47,13 @@ linux:
   target: AppImage
   icon: resources/icon-512.png
   category: Utility
+
+# App updates (src/main/updater.ts). `pnpm release` builds the installer and
+# uploads it with latest.yml to a draft GitHub Release; publishing that draft
+# is what makes installed copies update. Needs GH_TOKEN with repo access.
+# Bump "version" in package.json first: the updater only offers higher versions.
+publish:
+  provider: github
+  owner: pm-tech-hq
+  repo: mypa
+  releaseType: draft

@@ -40,6 +40,7 @@ import * as db from "./db";
 import { registerAssistantHandlers } from "./assistant/ipc";
 import { registerTutorHandlers } from "./tutor/ipc";
 import { flushPendingDeepLink, setupDeepLinks } from "./deeplink";
+import { attachWindow, initSystem, keepRunningInTray, startHidden } from "./system";
 import { registerMarketHandlers } from "./widgets/ipc";
 import { handleWidgetProtocol, registerWidgetScheme } from "./widgets/protocol";
 import { runFileTranscription, runPageExtraction, runUrlMediaTranscription } from "./transcribe/run";
@@ -56,6 +57,12 @@ const isDev = !app.isPackaged;
 
 // Custom widgets are served from their own scheme; must be declared pre-ready.
 registerWidgetScheme();
+
+// Windows ties notifications (and taskbar grouping) to this ID. It must match
+// the installer's appId; in dev Electron's own shortcut uses the exe path.
+if (process.platform === "win32") {
+  app.setAppUserModelId(app.isPackaged ? "com.mypa.desktop" : process.execPath);
+}
 
 // A second launch (e.g. from a mypa:// link) hands off to the running app.
 if (!setupDeepLinks()) app.quit();
@@ -342,7 +349,8 @@ function registerWindowHandlers(): void {
   );
 }
 
-function createWindow(): void {
+/** `hidden` keeps the window in the tray (started at sign-in) until opened. */
+function createWindow(hidden = false): BrowserWindow {
   const window = new BrowserWindow({
     width: 1320,
     height: 860,
@@ -361,7 +369,8 @@ function createWindow(): void {
     },
   });
 
-  window.once("ready-to-show", () => window.show());
+  if (!hidden) window.once("ready-to-show", () => window.show());
+  attachWindow(window);
 
   const emitMaximize = () =>
     window.webContents.send(IPC.winMaximizeChanged, window.isMaximized());
@@ -378,6 +387,7 @@ function createWindow(): void {
   } else {
     void window.loadFile(join(__dirname, "../renderer/index.html"));
   }
+  return window;
 }
 
 app.whenReady().then(async () => {
@@ -392,7 +402,9 @@ app.whenReady().then(async () => {
   registerMarketHandlers();
   ipcMain.handle(IPC.getVersion, () => app.getVersion());
 
-  createWindow();
+  initSystem({ createWindow: () => createWindow(), icon });
+
+  createWindow(startHidden());
   flushPendingDeepLink();
   startCalendarSync();
 
@@ -404,5 +416,5 @@ app.whenReady().then(async () => {
 app.on("before-quit", () => db.flush());
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+  if (process.platform !== "darwin" && !keepRunningInTray()) app.quit();
 });

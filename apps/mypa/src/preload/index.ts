@@ -4,6 +4,7 @@ import { IPC } from "../shared/api";
 import { MARKET_IPC } from "../shared/marketApi";
 import { ASSISTANT_IPC } from "../shared/assistant";
 import { TUTOR_IPC } from "../shared/tutor";
+import { SYSTEM_IPC } from "../shared/system";
 
 // Shape must match `MypaApi` in ../shared/api (enforced on the renderer side
 // via the `Window.mypa` declaration in src/renderer/global.d.ts).
@@ -114,6 +115,18 @@ contextBridge.exposeInMainWorld("mypa", {
     },
     speak: (text: string, voice: string) => ipcRenderer.invoke(TUTOR_IPC.speak, text, voice),
     transcribeMic: (samples: Float32Array) => ipcRenderer.invoke(TUTOR_IPC.transcribeMic, samples),
+  },
+  system: {
+    getState: () => ipcRenderer.invoke(SYSTEM_IPC.getState),
+    setPrefs: (patch: unknown) => ipcRenderer.invoke(SYSTEM_IPC.setPrefs, patch),
+    testNotification: () => ipcRenderer.invoke(SYSTEM_IPC.testNotification),
+    checkForUpdates: () => ipcRenderer.invoke(SYSTEM_IPC.checkForUpdates),
+    installUpdate: () => ipcRenderer.send(SYSTEM_IPC.installUpdate),
+    onStateChanged: (cb: (state: unknown) => void) => {
+      const handler = (_e: unknown, state: unknown) => cb(state);
+      ipcRenderer.on(SYSTEM_IPC.stateChanged, handler);
+      return () => ipcRenderer.removeListener(SYSTEM_IPC.stateChanged, handler);
+    },
   },
   market: {
     catalog: (force?: boolean) => ipcRenderer.invoke(MARKET_IPC.catalog, force),

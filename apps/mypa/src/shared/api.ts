@@ -26,6 +26,7 @@ import type {
 } from "./types";
 import type { MypaAssistant } from "./assistant";
 import type { MypaTutor } from "./tutor";
+import type { MypaSystem } from "./system";
 
 export const IPC = {
   getVersion: "app:getVersion",
@@ -176,4 +177,5 @@ export interface MypaApi {
   tutor: MypaTutor;
   assistant: MypaAssistant;
   market: MypaMarket;
+  system: MypaSystem;
 }

@@ -27,6 +27,7 @@ function deliver(id: string): void {
     return;
   }
   if (win.isMinimized()) win.restore();
+  win.show();
   win.focus();
   const send = () => win.webContents.send(MARKET_IPC.openWidget, id);
   if (win.webContents.isLoading()) win.webContents.once("did-finish-load", send);
@@ -51,6 +52,7 @@ export function setupDeepLinks(): boolean {
     if (id) deliver(id);
     else if (win) {
       if (win.isMinimized()) win.restore();
+      win.show();
       win.focus();
     }
   });

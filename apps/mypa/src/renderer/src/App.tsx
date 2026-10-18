@@ -9,8 +9,9 @@ import {
   type ReactNode,
 } from "react";
 
-import { ChevronDown, LayoutGrid, Package, Plus, Sparkles, Undo2 } from "lucide-react";
+import { ChevronDown, LayoutGrid, Package, Plus, Settings, Sparkles, Undo2 } from "lucide-react";
 
+import { AppSettings, useSystemState } from "./components/AppSettings";
 import { AssistantPanel } from "./components/AssistantPanel";
 import { BrandMark } from "./components/BrandMark";
 import { Marketplace } from "./components/Marketplace";
@@ -69,6 +70,9 @@ export function App() {
   const [pendingKind, setPendingKind] = useState<WidgetChoice | null>(null);
   const [marketOpen, setMarketOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const system = useSystemState();
+  const updateReady = system?.update.state === "ready";
 
   // Ctrl+K (⌘K) opens and closes the assistant from anywhere; Esc closes it.
   useEffect(() => {
@@ -316,6 +320,21 @@ export function App() {
               <ChevronDown className="appbar__add-caret" />
             </Button>
           </AddWidgetMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="appbar__settings"
+                aria-label={updateReady ? "Settings, update ready" : "Settings"}
+                onClick={() => setSettingsOpen(true)}
+              >
+                <Settings />
+                {updateReady && <span className="appbar__settings-dot" aria-hidden />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{updateReady ? "Update ready to install" : "Settings"}</TooltipContent>
+          </Tooltip>
         </div>
         <WindowControls />
       </header>
@@ -411,6 +430,8 @@ export function App() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AppSettings open={settingsOpen} onOpenChange={setSettingsOpen} state={system} />
 
       {snapshot && (
         <Marketplace

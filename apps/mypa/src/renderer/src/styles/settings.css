@@ -1,0 +1,166 @@
+/* ---- app settings dialog ------------------------------------------------------- */
+.app-set {
+  max-height: min(640px, calc(100vh - 48px));
+  overflow-y: auto;
+}
+
+.app-set__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ds-border);
+}
+
+.app-set__section h3 {
+  margin: 0;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-muted);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.app-set__toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.app-set__toggle label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.app-set__toggle [data-slot="switch"] {
+  margin-top: 2px;
+}
+
+.app-set__toggle.is-disabled label {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.app-set__toggle strong,
+.app-set__update-text strong {
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-fg);
+}
+
+.app-set__toggle em {
+  font-style: normal;
+  font-size: var(--ds-text-2xs);
+  line-height: 1.45;
+  color: var(--ds-muted);
+}
+
+.app-set__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-set__note {
+  font-size: var(--ds-text-2xs);
+  line-height: 1.45;
+  color: var(--ds-muted);
+}
+
+.app-set__button {
+  flex: 0 0 auto;
+  height: var(--ds-control-sm);
+  padding: 0 12px;
+  appearance: none;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  color: var(--ds-fg-2);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+  transition:
+    border-color var(--ds-dur-fast) var(--ds-ease-out),
+    color var(--ds-dur-fast) var(--ds-ease-out);
+}
+
+.app-set__button:hover:not(:disabled) {
+  border-color: var(--ds-fg);
+  color: var(--ds-fg);
+}
+
+.app-set__button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.app-set__button.is-primary {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent);
+  color: var(--ds-accent-fg);
+}
+
+.app-set__button.is-primary:hover {
+  background: var(--ds-accent-hover);
+  color: var(--ds-accent-fg);
+}
+
+.app-set__update {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-sunken);
+}
+
+.app-set__update-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: var(--ds-text-2xs);
+  line-height: 1.45;
+  color: var(--ds-muted);
+}
+
+.app-set__progress {
+  display: block;
+  height: 3px;
+  margin-top: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--ds-border);
+}
+
+.app-set__progress span {
+  display: block;
+  height: 100%;
+  background: var(--ds-accent);
+  transform-origin: left center;
+  transition: transform var(--ds-dur) var(--ds-ease-out);
+}
+
+/* Gear in the title bar: a dot when an app update is ready to install. */
+.appbar__settings {
+  position: relative;
+}
+
+.appbar__settings-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ds-accent);
+  box-shadow: 0 0 0 2px var(--ds-bg);
+  pointer-events: none;
+}
