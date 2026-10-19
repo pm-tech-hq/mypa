@@ -9,6 +9,7 @@ import {
   Folder,
   ListPlus,
   MoreHorizontal,
+  Plus,
   Target,
   Trash2,
   X,
@@ -16,6 +17,7 @@ import {
 
 import { EditableText } from "./EditableText";
 import { Calendar } from "./ui/calendar";
+import { Input } from "./ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,11 +86,12 @@ export function TaskItem({
   onDragEnd,
 }: TaskRowProps) {
   const { actions } = useReadyStore();
-  const [dueOpen, setDueOpen] = useState(false);
+  /** Which popover hangs off the row: the due-date picker or the new-project field. */
+  const [pop, setPop] = useState<"due" | "project" | null>(null);
   const [addingStep, setAddingStep] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   /** What to do once the menu has closed and handed focus back. */
-  const afterMenu = useRef<"due" | "step" | null>(null);
+  const afterMenu = useRef<"due" | "step" | "project" | null>(null);
 
   const stepsDone = steps.filter((s) => s.done).length;
   const countdown = item.due != null && !item.done ? formatCountdown(item.due, now) : null;
@@ -96,7 +99,12 @@ export function TaskItem({
 
   const setDue = (due: number | null) => {
     update({ due });
-    setDueOpen(false);
+    setPop(null);
+  };
+
+  const setProject = (project: Project) => {
+    update({ project });
+    setPop(null);
   };
 
   const startAddStep = () => {
@@ -109,8 +117,8 @@ export function TaskItem({
     afterMenu.current = null;
     if (!next) return;
     e.preventDefault();
-    if (next === "due") setDueOpen(true);
-    else startAddStep();
+    if (next === "step") startAddStep();
+    else setPop(next);
   };
 
   const showSteps = expanded && (steps.length > 0 || addingStep);
@@ -123,7 +131,7 @@ export function TaskItem({
       onDragStart={(e) => onDragStart(e, item)}
       onDragEnd={onDragEnd}
     >
-      <Popover open={dueOpen} onOpenChange={setDueOpen}>
+      <Popover open={pop !== null} onOpenChange={(open) => !open && setPop(null)}>
         <PopoverAnchor asChild>
           <div className="row__main">
             <button
@@ -164,7 +172,7 @@ export function TaskItem({
                     type="button"
                     className={`row__due num${countdown.urgent ? " row__due--urgent" : ""}`}
                     title={`Due ${formatDueDate(item.due!)}. Click to change`}
-                    onClick={() => setDueOpen(true)}
+                    onClick={() => setPop("due")}
                   >
                     {countdown.text}
                   </button>
@@ -273,6 +281,11 @@ export function TaskItem({
                         </DropdownMenuRadioItem>
                       ))}
                     </DropdownMenuRadioGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => (afterMenu.current = "project")}>
+                      <Plus />
+                      New project…
+                    </DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
                 <DropdownMenuSeparator />
@@ -285,7 +298,11 @@ export function TaskItem({
           </div>
         </PopoverAnchor>
         <PopoverContent className="due-pop w-auto p-0" align="end">
-          <DuePicker due={item.due} now={now} onPick={setDue} />
+          {pop === "project" ? (
+            <ProjectNamer projects={projects} onPick={setProject} />
+          ) : (
+            <DuePicker due={item.due} now={now} onPick={setDue} />
+          )}
         </PopoverContent>
       </Popover>
 
@@ -368,6 +385,37 @@ function StepAdder({
       onKeyDown={onKeyDown}
       onBlur={onDone}
     />
+  );
+}
+
+/** Names a new project and moves the task into it. A name that matches an existing project (ignoring case) reuses it. */
+function ProjectNamer({
+  projects,
+  onPick,
+}: {
+  projects: Project[];
+  onPick: (project: Project) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    const name = draft.trim().replace(/\s+/g, " ");
+    if (!name) return;
+    onPick(projects.find((p) => p.toLowerCase() === name.toLowerCase()) ?? name);
+  };
+  return (
+    <div className="project-namer">
+      <Input
+        autoFocus
+        placeholder="Project name"
+        aria-label="New project name"
+        maxLength={60}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={onKeyDown}
+      />
+      <span className="project-namer__hint">Enter to move this task into it</span>
+    </div>
   );
 }
 

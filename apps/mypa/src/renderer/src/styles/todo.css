@@ -1017,6 +1017,20 @@ input.editable--on {
   white-space: nowrap;
 }
 
+/* new-project field, shown in the row popover */
+.project-namer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 220px;
+  padding: 8px;
+}
+
+.project-namer__hint {
+  color: var(--ds-muted);
+  font-size: var(--ds-text-2xs);
+}
+
 /* due-date picker: quick picks beside a month calendar */
 .due-picker {
   display: flex;
