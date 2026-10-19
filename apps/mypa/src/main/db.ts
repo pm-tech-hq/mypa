@@ -710,6 +710,8 @@ export function createWidget(input: NewWidget): string | null {
           ? { title: "Tutor", w: 480, h: 640, settings: "{}" }
           : input.kind === "typing"
             ? { title: "Typing", w: 560, h: 660, settings: "{}" }
+            : input.kind === "flashcards"
+              ? { title: "Flashcards", w: 520, h: 660, settings: "{}" }
             : input.kind === "transcribe"
               ? {
                   title: "Transcribe",

@@ -19,6 +19,7 @@ import {
 } from "../../../shared/types";
 import { CalendarAccounts } from "./CalendarAccounts";
 import { TrustBadge } from "./TrustBadge";
+import { FlashcardsSettingsForm } from "./FlashcardsSettings";
 import { TypingSettingsForm } from "./TypingSettings";
 
 interface Props {
@@ -75,6 +76,7 @@ export function WidgetSettings({ widget, onClose }: Props) {
         )}
         {widget.kind === "custom" && <CustomSettingsForm widget={widget} />}
         {widget.kind === "typing" && <TypingSettingsForm widget={widget} />}
+        {widget.kind === "flashcards" && <FlashcardsSettingsForm widget={widget} />}
 
         {widget.kind === "todo" && (
           <label className="wsettings__toggle">

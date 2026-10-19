@@ -3,7 +3,14 @@
 import type { InstalledWidget } from "./widgetPlatform";
 
 export type WidgetKind =
-  "blank" | "todo" | "calendar" | "transcribe" | "tutor" | "typing" | "custom";
+  | "blank"
+  | "todo"
+  | "calendar"
+  | "transcribe"
+  | "tutor"
+  | "typing"
+  | "flashcards"
+  | "custom";
 export type Importance = "high" | "medium" | "low";
 export type TaskSection = "today" | "backlog";
 export type GoalHorizon = "week" | "month" | "quarter" | "year" | "someday";
@@ -267,13 +274,104 @@ export const DEFAULT_TYPING_PREFS: TypingPrefs = {
   sprintSeconds: 60,
 };
 
+/** 0 new, 1 learning, 2 review, 3 relearning (forgotten, being learned again). */
+export type FlashState = 0 | 1 | 2 | 3;
+
+/** One flashcard and its place in the review schedule (FSRS). */
+export interface Flashcard {
+  id: string;
+  /** "t:<transcript id>", "n:<note widget id>" or "manual". */
+  sourceId: string;
+  sourceTitle: string;
+  /** cloze: `front` is a sentence with the answer replaced by "{{}}". */
+  kind: "qa" | "cloze";
+  front: string;
+  back: string;
+  /** The words in the material the card was made from. */
+  quote: string;
+  /** Plausible wrong answers, for multiple choice. */
+  wrong: string[];
+  origin: "ai" | "rules" | "manual";
+  createdAt: number;
+  state: FlashState;
+  /** Index into the (re)learning steps. */
+  step: number;
+  due: number;
+  /** Days until the chance of remembering falls to 90%. */
+  stability: number;
+  /** 1 (easy) to 10 (hard). */
+  difficulty: number;
+  lastReview: number;
+  reps: number;
+  lapses: number;
+  suspended?: boolean;
+}
+
+export interface FlashDay {
+  /** Every answer given. */
+  reviews: number;
+  /** New cards seen for the first time. */
+  fresh: number;
+  /** Answers on cards already learned, and how many of those were remembered. */
+  rev: number;
+  revOk: number;
+  ms: number;
+}
+
+export interface FlashcardsPrefs {
+  tab: "study" | "cards" | "stats";
+  newPerDay: number;
+  /** Reviews per day; 0 = no limit. */
+  maxReviews: number;
+  /** Target chance of still remembering a card when it comes back. */
+  retention: number;
+  /** How questions are asked. Mixed moves from recognising to recalling. */
+  mode: "mixed" | "flip" | "type" | "choice";
+  /** "off", "local" or a Tutor provider id: writes cards, explains, checks answers. */
+  ai: string;
+  /** Make cards with AI or with the quick built-in rules; null = not chosen yet. */
+  useAi: boolean | null;
+  focus: "understanding" | "facts" | "mixed";
+  batchSize: number;
+  showQuote: boolean;
+  readAloud: boolean;
+  /** Let the AI judge typed answers that don't match word for word. */
+  aiCheck: boolean;
+}
+
+export const DEFAULT_FLASHCARDS_PREFS: FlashcardsPrefs = {
+  tab: "study",
+  newPerDay: 15,
+  maxReviews: 200,
+  retention: 0.9,
+  mode: "mixed",
+  ai: "local",
+  useAi: null,
+  focus: "understanding",
+  batchSize: 20,
+  showQuote: true,
+  readAloud: false,
+  aiCheck: true,
+};
+
+export interface FlashcardsSettings {
+  /** By card id. */
+  flashCards: Record<string, Flashcard>;
+  /** By study day, YYYY-MM-DD (a study day starts at 4am). */
+  flashDays: Record<string, FlashDay>;
+  /** By source id: the parts of it already turned into cards. */
+  flashMade: Record<string, number[]>;
+  flashPrefs: Partial<FlashcardsPrefs>;
+}
+
 export type WidgetSettings = Partial<
   TodoSettings &
     BlankSettings &
     CalendarSettings &
     TranscribeSettings &
     CustomSettings &
-    TypingSettings
+    TypingSettings &
+    FlashcardsSettings
 >;
 
 export const DEFAULT_TODO_SETTINGS: TodoSettings = {
@@ -381,7 +479,13 @@ export interface RetryTranscript {
 
 /* ---- labels / ordering ----------------------------------------------- */
 
-export const HORIZON_ORDER: GoalHorizon[] = ["week", "month", "quarter", "year", "someday"];
+export const HORIZON_ORDER: GoalHorizon[] = [
+  "week",
+  "month",
+  "quarter",
+  "year",
+  "someday",
+];
 
 export const HORIZON_LABEL: Record<GoalHorizon, string> = {
   week: "This week",

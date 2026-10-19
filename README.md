@@ -21,6 +21,7 @@ myPA is a desktop app (Electron, Windows first) that you keep open all day. You 
 | **Calendar** | Agenda and month views. Add your own events, or bring in Google, Outlook or any ICS feed (read-only, with your own OAuth app). |
 | **Transcribe** | Turn audio and video files, media links (via `yt-dlp`) or web pages into searchable text. Transcription runs **on your computer** with Whisper. |
 | **Tutor** | Learn from what you transcribed: explain, how to apply, key takeaways, quizzes. Uses a built-in **offline** model or a provider you configure. It can read answers aloud and listen to your questions. |
+| **Flashcards** | Turns your transcripts and notes into flashcards (written by AI, or instantly offline from key sentences) and quizzes you: multiple choice while a card is new, then typing or recalling the answer. Cards come back on an FSRS spaced-repetition schedule, with explanations, undo and progress charts. |
 | **Note** | Markdown notes with tickable checklists. |
 | **Marketplace widgets** | Focus timer, Habits, World clock, Weather, Countdown, Quick links, Today's focus, plus anything you build or install yourself. |
 
@@ -58,6 +59,7 @@ The goal: **the day's real work is visible, current and actionable at a glance, 
 | Transcribe | Downloads a Whisper model once (Hugging Face). Media links and web pages are fetched from their source. |
 | Tutor (built-in) | Downloads the chosen model once (Qwen2.5 0.5B/1.5B or Phi-4 mini, via transformers.js). Answers are generated locally. |
 | Tutor (provider) | Sends your question plus excerpts of the selected transcripts to the provider you configured (OpenAI-compatible or Anthropic). Keys are encrypted with the OS keychain (Electron `safeStorage`) and never reach the UI. |
+| Flashcards | Quick cards: none. AI cards, explanations and answer checks use the Tutor's models: on-device, or the provider you picked (which then receives the part of the transcript being turned into cards, or the card being explained). |
 | Calendar accounts | Read-only sync with the calendar you connect, using an OAuth app you own. |
 | Marketplace widgets | Only the hosts listed in a widget's permissions (Weather → Open-Meteo, for example). Widgets have no other network access. |
 

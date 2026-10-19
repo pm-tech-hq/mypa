@@ -216,20 +216,25 @@ function splitLong(sentence: string, MAX_WORDS: number, MIN_WORDS: number): stri
   return out;
 }
 
-export function passagesOf(source: Source, length: PassageLength = "medium"): Passage[] {
-  const { min: MIN_WORDS, target: TARGET_WORDS, max: MAX_WORDS } = LENGTHS[length];
+/** A source as plain sentences: no timestamps, speaker labels, fillers,
+ *  markdown or citations. Also what the Flashcards widget learns from. */
+export function sentencesOf(source: Source): string[] {
   const cleaned = plainChars(
     source.kind === "transcript" ? cleanTranscript(source.text) : cleanNote(source.text),
   )
     .replace(/\s+/g, " ")
     .trim();
-  const sentences = (cleaned.match(/[^.!?]+(?:[.!?]+["')\]]*|$)/g) ?? [])
+  return (cleaned.match(/[^.!?]+(?:[.!?]+["')\]]*|$)/g) ?? [])
     .map((s) => s.trim())
     .filter(Boolean)
     // Reference lists and citations: nothing to learn, awkward to type.
     .filter((s) => !CITATION.test(s))
-    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-    .flatMap((s) => splitLong(s, MAX_WORDS, MIN_WORDS));
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1));
+}
+
+export function passagesOf(source: Source, length: PassageLength = "medium"): Passage[] {
+  const { min: MIN_WORDS, target: TARGET_WORDS, max: MAX_WORDS } = LENGTHS[length];
+  const sentences = sentencesOf(source).flatMap((s) => splitLong(s, MAX_WORDS, MIN_WORDS));
 
   const chunks: string[] = [];
   let cur: string[] = [];

@@ -3,6 +3,7 @@ import {
   CalendarDays,
   GraduationCap,
   Keyboard,
+  Layers,
   ListTodo,
   StickyNote,
   type LucideIcon,
@@ -49,6 +50,12 @@ export const WIDGET_KINDS: WidgetKindMeta[] = [
     label: "Typing",
     description: "Type faster while you learn your notes",
     icon: Keyboard,
+  },
+  {
+    kind: "flashcards",
+    label: "Flashcards",
+    description: "Cards from your transcripts that quiz you",
+    icon: Layers,
   },
   {
     kind: "blank",

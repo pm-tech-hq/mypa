@@ -700,6 +700,7 @@ const KINDS: Record<string, WidgetKind> = {
   transcribe: "transcribe",
   tutor: "tutor",
   typing: "typing",
+  flashcards: "flashcards",
   note: "blank",
 };
 
@@ -777,13 +778,13 @@ const boardTools: ToolDef[] = [
   {
     name: "add_widget",
     description:
-      "Add a widget to a page (default: current page). kind is one of todo, calendar, transcribe, tutor, typing (a typing trainer over transcripts and notes), note, or custom with a plugin_id from list_pages_and_widgets.",
+      "Add a widget to a page (default: current page). kind is one of todo, calendar, transcribe, tutor, typing (a typing trainer over transcripts and notes), flashcards (spaced-repetition flashcards made from transcripts and notes), note, or custom with a plugin_id from list_pages_and_widgets.",
     parameters: {
       type: "object",
       properties: {
         kind: {
           type: "string",
-          enum: ["todo", "calendar", "transcribe", "tutor", "typing", "note", "custom"],
+          enum: ["todo", "calendar", "transcribe", "tutor", "typing", "flashcards", "note", "custom"],
         },
         plugin_id: { type: "string" },
         page_id: { type: "string" },

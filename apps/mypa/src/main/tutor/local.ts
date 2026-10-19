@@ -7,16 +7,45 @@ import { app } from "electron";
 import { LOCAL_MODELS, type ChatMessage, type LocalModelId } from "../../shared/tutor";
 import type { LocalRequest, LocalResponse } from "./local-worker";
 
+/**
+ * Each generation leaves roughly half a gigabyte behind in the worker
+ * (transformers.js), and once its heap nears Electron's ~4 GB cap, garbage
+ * collection pins a core and the worker stops answering. So a worker serves a
+ * few jobs and is replaced, and is let go when idle; reloading the cached
+ * model takes about ten seconds.
+ */
+const JOBS_PER_WORKER = 3;
+const IDLE_MS = 3 * 60_000;
+
 let worker: Worker | null = null;
+let active = 0;
+let served = 0;
+let idleTimer: NodeJS.Timeout | undefined;
 
 function getWorker(): Worker {
+  clearTimeout(idleTimer);
   if (worker) return worker;
   const w = new Worker(path.join(__dirname, "tutor", "local-worker.js"));
   w.on("exit", () => {
     if (worker === w) worker = null;
   });
   worker = w;
+  served = 0;
   return w;
+}
+
+function release(): void {
+  if (!worker || active > 0) return;
+  void worker.terminate();
+  worker = null;
+}
+
+function jobFinished(): void {
+  active -= 1;
+  served += 1;
+  if (active > 0) return;
+  if (served >= JOBS_PER_WORKER) release();
+  else idleTimer = setTimeout(release, IDLE_MS);
 }
 
 export function streamLocal(
@@ -30,6 +59,7 @@ export function streamLocal(
   const repo = LOCAL_MODELS.find((m) => m.id === model)?.repo ?? LOCAL_MODELS[1]!.repo;
   return new Promise<void>((resolve, reject) => {
     const w = getWorker();
+    active += 1;
     const onMessage = (msg: LocalResponse) => {
       if (msg.jobId !== jobId) return;
       if (msg.type === "delta") onDelta(msg.text);
@@ -51,6 +81,7 @@ export function streamLocal(
       w.off("error", onError);
       w.off("exit", onExit);
       signal.removeEventListener("abort", onAbort);
+      jobFinished();
       settle();
     }
     w.on("message", onMessage);
