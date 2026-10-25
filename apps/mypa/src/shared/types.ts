@@ -180,6 +180,15 @@ export interface BlankSettings {
   note: string;
 }
 
+/** A saved state of a note widget's text. The newest one is the current text. */
+export interface NoteVersion {
+  id: string;
+  text: string;
+  /** When this version's editing began, and when it last changed. */
+  createdAt: number;
+  updatedAt: number;
+}
+
 /** Settings of a `custom` widget instance. */
 export interface CustomSettings {
   /** Manifest id of the installed widget this instance runs. */

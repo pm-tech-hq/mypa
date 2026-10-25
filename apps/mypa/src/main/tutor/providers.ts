@@ -40,9 +40,12 @@ export async function streamProvider(
   onDelta: (text: string) => void,
 ): Promise<void> {
   if (!p.model) throw new Error(`No model set for "${p.name}".`);
+  // Messages arrive over IPC and may carry UI fields; providers that validate
+  // strictly (Anthropic) reject anything but role and content.
+  const clean = messages.map(({ role, content }) => ({ role, content }));
   return p.type === "anthropic"
-    ? streamAnthropic(p, messages, signal, onDelta)
-    : streamOpenAi(p, messages, signal, onDelta);
+    ? streamAnthropic(p, clean, signal, onDelta)
+    : streamOpenAi(p, clean, signal, onDelta);
 }
 
 async function streamOpenAi(

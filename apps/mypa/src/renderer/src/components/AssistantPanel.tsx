@@ -166,7 +166,13 @@ export function AssistantPanel({
   };
 
   const stop = () => {
-    if (requestRef.current) void window.mypa.assistant.cancel(requestRef.current);
+    if (!requestRef.current) return;
+    void window.mypa.assistant.cancel(requestRef.current);
+    // settle now rather than waiting for the model to notice
+    requestRef.current = null;
+    setBusy(false);
+    setStatus("");
+    patchReply((t) => ({ ...t, text: t.text.trim() }));
   };
 
   const setActionStatus = (turnId: string, actionId: string, patch: Partial<ActionCard>) =>

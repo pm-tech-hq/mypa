@@ -1,10 +1,10 @@
 /** Tutor widget helpers — prompt building, source retrieval, speech. */
-import type { ChatMessage } from "../../../shared/tutor";
+import type { ChatMessage, VoiceEngine } from "../../../shared/tutor";
 import type { TranscriptRow } from "../../../shared/types";
 
 export type Level = "beginner" | "intermediate" | "advanced";
 export type Mode = "ask" | "explain" | "apply" | "takeaways" | "quiz" | "topics";
-export type Engine = "system" | "neural";
+export type Engine = VoiceEngine;
 
 export const LEVEL_LABEL: Record<Level, string> = {
   beginner: "Beginner",
@@ -56,6 +56,119 @@ export function modePrompt(mode: Mode, topic: string): string {
     default:
       return topic;
   }
+}
+
+/* ------------------------------------------------------------ lessons -- */
+
+export type LessonStyle = "storyteller" | "direct" | "coach" | "simple" | "custom";
+export type LessonLength = "short" | "medium" | "long";
+
+export const LESSON_STYLES: { id: LessonStyle; label: string; hint: string; prompt: string }[] = [
+  {
+    id: "storyteller",
+    label: "Storyteller (Jim Rohn style)",
+    hint: "Stories, simple principles, memorable lines",
+    prompt:
+      "Teach like a warm, wise personal-development speaker in the tradition of Jim Rohn: open with a short story or an everyday scene, build to one simple principle, phrase it in short memorable lines with contrast and rhythm, talk straight to 'you', and close with a gentle challenge about who you could become.",
+  },
+  {
+    id: "direct",
+    label: "No fluff (Alex Hormozi style)",
+    hint: "Blunt, frameworks, numbers, action",
+    prompt:
+      "Teach like a blunt, high-energy business operator in the style of Alex Hormozi: state the point in the first sentence, name the principle, break it into a simple framework or a few numbered steps, use concrete numbers and before/after examples, call out the mistake most people make, and push for action. Tough love, zero fluff.",
+  },
+  {
+    id: "coach",
+    label: "Coach",
+    hint: "Questions that make you think",
+    prompt:
+      "Teach like a supportive coach: explain the idea briefly, then ask two or three reflective questions that connect it to my own life (pause on each, as if waiting), and end with a small exercise.",
+  },
+  {
+    id: "simple",
+    label: "Simple explainer (Feynman style)",
+    hint: "Plain words, vivid analogies",
+    prompt:
+      "Teach like Richard Feynman: build the idea up from first principles in plain words, use one vivid analogy, point out where people usually get confused, and finish by restating the core idea in one sentence.",
+  },
+  {
+    id: "custom",
+    label: "My own style…",
+    hint: "Describe how you want to be taught",
+    prompt: "",
+  },
+];
+
+export const LESSON_LENGTH: Record<LessonLength, { label: string; words: number }> = {
+  short: { label: "Short (~2 min)", words: 280 },
+  medium: { label: "Medium (~4 min)", words: 600 },
+  long: { label: "Long (~8 min)", words: 1_100 },
+};
+
+export function lessonStyleLabel(style: LessonStyle, custom: string): string {
+  if (style === "custom") return custom.trim() ? "my style" : "simple";
+  return LESSON_STYLES.find((s) => s.id === style)!.label.replace(/ \(.*\)$/, "").toLowerCase();
+}
+
+/** The request for one lesson. With no topic, the tutor picks one idea itself. */
+export function lessonPrompt(opts: {
+  topic: string;
+  style: LessonStyle;
+  custom: string;
+  length: LessonLength;
+  covered: string[];
+  hasMaterial: boolean;
+}): string {
+  const style =
+    opts.style === "custom"
+      ? opts.custom.trim()
+        ? `Teach in this style: ${opts.custom.trim()}`
+        : LESSON_STYLES.find((s) => s.id === "simple")!.prompt
+      : LESSON_STYLES.find((s) => s.id === opts.style)!.prompt;
+  const what = opts.topic
+    ? `Teach me one lesson about "${opts.topic}".`
+    : [
+        opts.hasMaterial
+          ? "Teach me one lesson. Pick ONE specific idea from the material that is genuinely worth learning (not a summary of everything)."
+          : "Teach me one lesson on a single practical idea that would make my life or work better.",
+        opts.covered.length
+          ? `Pick something different from what you already taught me: ${opts.covered.slice(-15).join("; ")}.`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+  return [
+    what,
+    style,
+    `Length: about ${LESSON_LENGTH[opts.length].words} words. It is a talk that will be read aloud to me, so write flowing spoken paragraphs, not notes; use at most one short list.`,
+    'Start with a first line "# " followed by a short title for the lesson. End with a line that starts with "Try this:" and gives one thing I can do today.',
+    "Stay true to the material, and say so when you add an example of your own. You are inspired by that teaching style, not the person: don't speak as them or put invented quotes in anyone's mouth.",
+  ].join("\n\n");
+}
+
+/** The "# Title" line of a lesson. */
+export function lessonTitle(text: string): string {
+  return /^\s*#+\s*(.+)$/m.exec(text)?.[1]?.replace(/[*_`]/g, "").trim().slice(0, 80) ?? "";
+}
+
+/**
+ * A stretch of the material to teach from: a random source (longer ones more
+ * often) and a random place in it, so each lesson can land somewhere new.
+ */
+export function lessonMaterial(sources: TranscriptRow[], budget: number): string {
+  const total = sources.reduce((n, t) => n + t.text.length, 0);
+  if (total <= budget) return buildMaterial(sources, "", budget);
+  let r = Math.random() * total;
+  const t = sources.find((s) => (r -= s.text.length) < 0) ?? sources[0]!;
+  if (t.text.length <= budget) return `### ${t.title}\n${t.text}`;
+  const start = Math.floor(Math.random() * (t.text.length - budget));
+  // begin and end on sentence boundaries where possible
+  const dot = t.text.indexOf(". ", start);
+  const from = dot >= 0 && dot - start < 400 ? dot + 2 : start;
+  const slice = t.text.slice(from, from + budget);
+  const end = slice.lastIndexOf(". ");
+  return `### ${t.title}\n${end > budget / 2 ? slice.slice(0, end + 1) : slice}`;
 }
 
 /* ------------------------------------------------------- source context -- */
@@ -118,7 +231,12 @@ export function buildMessages(
   const system = material
     ? `${systemPrompt(level)}\n\nMATERIAL:\n${material}`
     : `${systemPrompt(level)}\n\n(No material is selected yet — answer from general knowledge and say so.)`;
-  return [{ role: "system", content: system }, ...history.slice(-historyLimit)];
+  // Only role and content: the chat's own fields (id, shown) would be sent too,
+  // and Anthropic's API rejects unknown fields.
+  return [
+    { role: "system", content: system },
+    ...history.slice(-historyLimit).map(({ role, content }) => ({ role, content })),
+  ];
 }
 
 /* ---------------------------------------------------------------- save -- */
@@ -158,13 +276,13 @@ export function stripMarkdown(s: string): string {
     .trim();
 }
 
-/** Splits into speakable pieces (~300 chars max) so speech starts quickly. */
-export function splitSentences(text: string): string[] {
+/** Splits into speakable pieces (`max` chars) so speech starts quickly. */
+export function splitSentences(text: string, max = 300): string[] {
   const sentences = text.match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) ?? [text];
   const out: string[] = [];
   let cur = "";
   for (const s of sentences) {
-    if (cur && cur.length + s.length > 300) {
+    if (cur && cur.length + s.length > max) {
       out.push(cur.trim());
       cur = "";
     }
@@ -176,9 +294,22 @@ export function splitSentences(text: string): string[] {
 
 export interface SpeakOptions {
   engine: Engine;
-  /** System: a SpeechSynthesisVoice.voiceURI; neural: a Kokoro voice id. */
+  /** System: a SpeechSynthesisVoice.voiceURI; neural: a Kokoro voice id; cloud: the service's voice id. */
   voice: string;
 }
+
+/** An error's message without Electron's "Error invoking remote method …" wrapper. */
+export function errorText(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, "");
+}
+
+export const ENGINE_LABEL: Record<Engine, string> = {
+  system: "System voice: instant, basic quality",
+  neural: "Neural voice: natural, offline, ~90 MB download on first use",
+  openai: "OpenAI voices: very natural (your API key)",
+  elevenlabs: "ElevenLabs: most lifelike (your API key)",
+};
 
 /** One speaker per widget: starting anything new stops whatever was playing. */
 export class Speaker {
@@ -202,10 +333,12 @@ export class Speaker {
   async speak(text: string, opts: SpeakOptions): Promise<boolean> {
     this.stop();
     const mine = this.token;
-    const parts = splitSentences(stripMarkdown(text));
+    const engine = opts.engine;
+    // cloud voices sound more natural with whole paragraphs, and each piece is a request
+    const parts = splitSentences(stripMarkdown(text), engine === "neural" || engine === "system" ? 300 : 900);
     if (parts.length === 0) return false;
 
-    if (opts.engine === "system") {
+    if (engine === "system") {
       const synth = window.speechSynthesis;
       const voice = synth.getVoices().find((v) => v.voiceURI === opts.voice);
       await Promise.all(
@@ -226,11 +359,15 @@ export class Speaker {
 
     const ctx = (this.ctx ??= new AudioContext());
     if (ctx.state === "suspended") await ctx.resume();
-    let next = window.mypa.tutor.speak(parts[0]!, opts.voice);
+    const synth = (part: string) => window.mypa.tutor.speak(part, opts.voice, engine);
+    let next = synth(parts[0]!);
     for (let i = 0; i < parts.length; i++) {
       const audio = await next;
       if (this.token !== mine) return false;
-      if (i + 1 < parts.length) next = window.mypa.tutor.speak(parts[i + 1]!, opts.voice);
+      if (i + 1 < parts.length) {
+        next = synth(parts[i + 1]!);
+        next.catch(() => undefined); // surfaced when awaited; don't warn if stopped first
+      }
       const buffer = ctx.createBuffer(1, audio.samples.length, audio.sampleRate);
       buffer.copyToChannel(new Float32Array(audio.samples), 0);
       await new Promise<void>((resolve) => {

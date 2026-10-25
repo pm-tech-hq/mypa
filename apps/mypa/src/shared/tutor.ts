@@ -52,7 +52,30 @@ export interface SaveProviderInput {
 export interface TutorConfig {
   providers: ProviderInfo[];
   localModel: LocalModelId;
+  /** Which cloud voice services have a key: one saved for voices, or (OpenAI) the
+   *  key of an OpenAI chat provider. */
+  voiceKeys: Record<VoiceService, "saved" | "provider" | null>;
 }
+
+/** Cloud text-to-speech services, used with the learner's own API key. */
+export type VoiceService = "openai" | "elevenlabs";
+
+/** Where speech is made: the OS, Kokoro on this PC, or a cloud service. */
+export type VoiceEngine = "system" | "neural" | VoiceService;
+
+export const OPENAI_VOICES: { id: string; label: string }[] = [
+  { id: "coral", label: "Coral (warm, female)" },
+  { id: "sage", label: "Sage (calm, female)" },
+  { id: "nova", label: "Nova (bright, female)" },
+  { id: "shimmer", label: "Shimmer (soft, female)" },
+  { id: "ash", label: "Ash (clear, male)" },
+  { id: "onyx", label: "Onyx (deep, male)" },
+  { id: "echo", label: "Echo (even, male)" },
+  { id: "verse", label: "Verse (expressive, male)" },
+  { id: "ballad", label: "Ballad (gentle, male)" },
+  { id: "fable", label: "Fable (storyteller, British)" },
+  { id: "alloy", label: "Alloy (neutral)" },
+];
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -96,6 +119,8 @@ export const TUTOR_IPC = {
   cancel: "tutor:cancel",
   chatEvent: "tutor:chatEvent",
   speak: "tutor:speak",
+  setVoiceKey: "tutor:setVoiceKey",
+  listVoices: "tutor:listVoices",
   transcribeMic: "tutor:transcribeMic",
 } as const;
 
@@ -108,8 +133,12 @@ export interface MypaTutor {
   chat: (req: ChatRequest) => Promise<void>;
   cancel: (requestId: string) => Promise<void>;
   onChatEvent: (cb: (e: ChatEvent) => void) => () => void;
-  /** Neural text-to-speech (Kokoro) — synthesised on-device. */
-  speak: (text: string, voice: string) => Promise<SpeakResult>;
+  /** Text-to-speech: Kokoro on this PC (`neural`, the default) or a cloud voice service. */
+  speak: (text: string, voice: string, engine?: Exclude<VoiceEngine, "system">) => Promise<SpeakResult>;
+  /** Saves ("" removes) the API key for a cloud voice service. */
+  setVoiceKey: (service: VoiceService, key: string) => Promise<TutorConfig>;
+  /** The voices a cloud service offers this account. */
+  listVoices: (service: VoiceService) => Promise<{ id: string; label: string }[]>;
   /** Speech-to-text for mic input: mono 16 kHz samples → text (local Whisper). */
   transcribeMic: (samples: Float32Array) => Promise<string>;
 }

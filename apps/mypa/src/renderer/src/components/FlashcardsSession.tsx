@@ -347,11 +347,13 @@ export function FlashcardsSession({
     });
     explainHandle.current = h;
     const n = shown.n;
+    // a cancelled earlier request settles too; only the current one may update
+    const current = () => counter.current === n && explainHandle.current === h;
     h.done
-      .then((text) => counter.current === n && setExplain({ text, busy: false }))
+      .then((text) => current() && setExplain({ text, busy: false }))
       .catch(
         (err: unknown) =>
-          counter.current === n &&
+          current() &&
           setExplain({
             text: "",
             busy: false,

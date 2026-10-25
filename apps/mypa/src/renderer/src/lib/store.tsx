@@ -53,6 +53,7 @@ export interface StoreActions {
   ) => Promise<void>;
   updateWidgetSettings: (id: string, settings: WidgetSettings) => Promise<void>;
   deleteWidget: (id: string) => Promise<void>;
+  restoreNoteVersion: (widgetId: string, versionId: string) => Promise<void>;
 
   createGoal: (input: NewGoal) => Promise<void>;
   updateGoal: (id: string, patch: Partial<GoalRow>) => Promise<void>;
@@ -131,6 +132,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateWidget: (id, patch) => run(api.updateWidget(id, patch)),
       updateWidgetSettings: (id, settings) => run(api.updateWidgetSettings(id, settings)),
       deleteWidget: (id) => run(api.deleteWidget(id)),
+      restoreNoteVersion: (widgetId, versionId) =>
+        run(api.restoreNoteVersion(widgetId, versionId)),
 
       createGoal: (input) => run(api.createGoal(input)),
       updateGoal: (id, patch) => run(api.updateGoal(id, patch)),

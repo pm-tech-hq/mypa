@@ -15,6 +15,7 @@ import type {
   NewTask,
   NewUrlMediaTranscript,
   NewWidget,
+  NoteVersion,
   PageRow,
   RetryTranscript,
   Snapshot,
@@ -48,6 +49,8 @@ export const IPC = {
   widgetUpdate: "db:widget:update",
   widgetSettings: "db:widget:settings",
   widgetDelete: "db:widget:delete",
+  noteHistory: "db:note:history",
+  noteRestore: "db:note:restore",
 
   goalCreate: "db:goal:create",
   goalUpdate: "db:goal:update",
@@ -108,6 +111,9 @@ export interface MypaDb {
   ) => Promise<Snapshot>;
   updateWidgetSettings: (id: string, settings: WidgetSettings) => Promise<Snapshot>;
   deleteWidget: (id: string) => Promise<Snapshot>;
+  /** A note widget's saved versions, newest (the current text) first. */
+  noteHistory: (widgetId: string) => Promise<NoteVersion[]>;
+  restoreNoteVersion: (widgetId: string, versionId: string) => Promise<Snapshot>;
 
   createGoal: (input: NewGoal) => Promise<Snapshot>;
   updateGoal: (id: string, patch: Partial<GoalRow>) => Promise<Snapshot>;

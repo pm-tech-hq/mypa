@@ -148,6 +148,11 @@ function registerDbHandlers(): void {
     db.deleteWidget(id);
     return snap();
   });
+  ipcMain.handle(IPC.noteHistory, (_e, widgetId: string) => db.listNoteVersions(widgetId));
+  ipcMain.handle(IPC.noteRestore, (_e, widgetId: string, versionId: string) => {
+    db.restoreNoteVersion(widgetId, versionId);
+    return snap();
+  });
 
   ipcMain.handle(IPC.goalCreate, (_e, input: NewGoal) => {
     db.createGoal(input);

@@ -627,7 +627,7 @@ const noteTools: ToolDef[] = [
           : typeof a.append === "string"
             ? `${current.replace(/\s+$/, "")}${current ? "\n" : ""}${a.append}`
             : current;
-      db.updateWidgetSettings(n.w.id, { note: next.slice(0, 50_000) });
+      db.updateWidgetSettings(n.w.id, { note: next.slice(0, 50_000) }, { checkpoint: true });
       if (str(a.title)) db.updateWidget(n.w.id, { title: str(a.title).slice(0, 60) });
       return { result: { ok: true }, undo };
     },

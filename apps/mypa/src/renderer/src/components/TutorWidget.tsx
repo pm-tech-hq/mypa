@@ -9,6 +9,7 @@ import {
   FileText,
   GraduationCap,
   Headphones,
+  SlidersHorizontal,
   ListPlus,
   Loader2,
   Mic,
@@ -28,7 +29,14 @@ import {
   buildMaterial,
   buildMessages,
   CLOUD_BUDGET,
+  errorText,
   extractItems,
+  LESSON_LENGTH,
+  LESSON_STYLES,
+  lessonMaterial,
+  lessonPrompt,
+  lessonStyleLabel,
+  lessonTitle,
   LEVEL_LABEL,
   LOCAL_BUDGET,
   MODE_LABEL,
@@ -37,6 +45,8 @@ import {
   Speaker,
   titleFor,
   type Engine,
+  type LessonLength,
+  type LessonStyle,
   type Level,
   type Mode,
 } from "../lib/tutor";
@@ -54,6 +64,8 @@ interface Msg {
   content: string;
   /** What the learner sees, when different (mode buttons). */
   shown?: string;
+  /** Part of a "Teach me" lesson (its request or the lesson itself). */
+  lesson?: boolean;
 }
 
 interface Prefs {
@@ -64,6 +76,13 @@ interface Prefs {
   autoRead: boolean;
   /** null = every finished transcript */
   sources: string[] | null;
+  lessonStyle: LessonStyle;
+  lessonCustom: string;
+  lessonLength: LessonLength;
+  /** Read lessons aloud even when answers aren't. */
+  lessonVoice: boolean;
+  /** Start the next lesson once one has been read out. */
+  lessonKeepGoing: boolean;
 }
 
 const DEFAULT_PREFS: Prefs = {
@@ -73,7 +92,15 @@ const DEFAULT_PREFS: Prefs = {
   voice: "",
   autoRead: false,
   sources: null,
+  lessonStyle: "storyteller",
+  lessonCustom: "",
+  lessonLength: "short",
+  lessonVoice: true,
+  lessonKeepGoing: false,
 };
+
+/** Material per lesson for cloud models: one focused stretch, not everything. */
+const LESSON_BUDGET = 16_000;
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -98,6 +125,8 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
   const { snapshot, actions } = useReadyStore();
   const chatKey = `mypa.tutor.chat.${widget.id}`;
   const prefsKey = `mypa.tutor.prefs.${widget.id}`;
+  /** Titles of lessons already taught, so the next one picks something new. */
+  const taughtKey = `mypa.tutor.taught.${widget.id}`;
 
   const [prefs, setPrefs] = useState<Prefs>(() => ({
     ...DEFAULT_PREFS,
@@ -110,7 +139,11 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
   const [status, setStatus] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [sourceQuery, setSourceQuery] = useState("");
+  const [lessonOpen, setLessonOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  /** Settings were opened to pick a voice: show that part first. */
+  const [voiceSettings, setVoiceSettings] = useState(false);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -136,7 +169,10 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
   const handsFreeRef = useRef(false);
   handsFreeRef.current = handsFree;
   /** Always-fresh hands-free actions, callable from timers and event handlers. */
-  const latest = useRef<{ listen: () => Promise<void> }>({ listen: async () => undefined });
+  const latest = useRef<{ listen: () => Promise<void>; teach: (auto: boolean) => void }>({
+    listen: async () => undefined,
+    teach: () => undefined,
+  });
 
   const patchPrefs = useCallback(
     (patch: Partial<Prefs>) => {
@@ -187,14 +223,14 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
     /** Resolves `true` if the answer was read to the end. */
     async (id: string, text: string): Promise<boolean> => {
       setSpeakingId(id);
-      setVoiceBusy(prefsRef.current.engine === "neural");
+      setVoiceBusy(prefsRef.current.engine !== "system");
       try {
         return await speaker.speak(text, {
           engine: prefsRef.current.engine,
           voice: prefsRef.current.voice || (prefsRef.current.engine === "neural" ? "af_heart" : ""),
         });
       } catch (err) {
-        setError(`Voice failed: ${err instanceof Error ? err.message : String(err)}`);
+        setError(`Voice failed: ${errorText(err)}`);
         return false;
       } finally {
         setVoiceBusy(false);
@@ -220,22 +256,38 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
         setBusy(false);
         setStatus("");
         requestRef.current = null;
+        setMessages((ms) => ms.filter((m) => m.id !== replyId || m.content !== ""));
         if (e.type === "error") {
           setError(e.message);
           setHandsFree(false);
-          setMessages((ms) => ms.filter((m) => m.id !== replyId || m.content !== ""));
-        } else if (prefsRef.current.autoRead || handsFreeRef.current) {
-          const reply = messagesRef.current.find((m) => m.id === replyId);
-          if (reply?.content) {
-            void speak(reply.id, reply.content).then((finished) => {
-              // hands-free: once the answer has been read out, listen for the next question
-              if (finished && handsFreeRef.current) void latest.current.listen();
-            });
-          } else if (handsFreeRef.current) void latest.current.listen();
+          return;
         }
+        const reply = messagesRef.current.find((m) => m.id === replyId);
+        const p = prefsRef.current;
+        if (reply?.lesson) {
+          const title = lessonTitle(reply.content);
+          if (title) {
+            const taught = readJson<string[]>(taughtKey, []).filter((t) => t !== title);
+            writeJson(taughtKey, [...taught, title].slice(-40));
+          }
+        }
+        const read = p.autoRead || handsFreeRef.current || (reply?.lesson && p.lessonVoice);
+        if (read && reply?.content) {
+          void speak(reply.id, reply.content).then((finished) => {
+            if (!finished) return;
+            const now = prefsRef.current;
+            // keep going: the next lesson, like an episode ending and the next one starting
+            if (reply.lesson && now.lessonKeepGoing && now.lessonVoice) {
+              window.setTimeout(() => latest.current.teach(true), 1_200);
+            } else if (handsFreeRef.current) {
+              // hands-free: once the answer has been read out, listen for the next question
+              void latest.current.listen();
+            }
+          });
+        } else if (handsFreeRef.current) void latest.current.listen();
       }
     });
-  }, [speak]);
+  }, [speak, taughtKey]);
 
   const ready = useMemo(
     () => snapshot.transcripts.filter((t) => t.status === "done" && t.text.trim() !== ""),
@@ -253,21 +305,40 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
     });
   };
 
-  /** Sends `user` after `before` and streams the answer in. */
-  const ask = (before: Msg[], user: Msg, topic: string) => {
+  const sourceFilter = sourceQuery.trim().toLowerCase();
+  const listed = sourceFilter
+    ? ready.filter((t) => t.title.toLowerCase().includes(sourceFilter))
+    : ready;
+
+  /** Selects or unselects every listed source at once. */
+  const setSources = (ids: string[], on: boolean) => {
+    const current = new Set(prefs.sources ?? ready.map((t) => t.id));
+    for (const id of ids) {
+      if (on) current.add(id);
+      else current.delete(id);
+    }
+    patchPrefs({ sources: ready.every((t) => current.has(t.id)) ? null : [...current] });
+  };
+
+  /** Sends `user` after `before` and streams the answer in. A lesson starts
+   *  fresh: the model sees only its request, with material picked for it. */
+  const ask = (
+    before: Msg[],
+    user: Msg,
+    topic: string,
+    lesson?: { material: string },
+  ) => {
     speaker.stop();
     setSpeakingId(null);
     setError(null);
     stickRef.current = true;
 
-    const reply: Msg = { id: uid(), role: "assistant", content: "" };
+    const reply: Msg = { id: uid(), role: "assistant", content: "", lesson: lesson ? true : undefined };
     const history = [...before, user];
     const local = prefs.target === "local";
-    const material = buildMaterial(
-      selected,
-      topic || user.content,
-      local ? LOCAL_BUDGET : CLOUD_BUDGET,
-    );
+    const material =
+      lesson?.material ??
+      buildMaterial(selected, topic || user.content, local ? LOCAL_BUDGET : CLOUD_BUDGET);
     const requestId = uid();
     requestRef.current = requestId;
     replyRef.current = reply.id;
@@ -278,9 +349,37 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
     void window.mypa.tutor.chat({
       requestId,
       target: prefs.target,
-      messages: buildMessages(history, material, prefs.level, local ? 6 : 16),
+      messages: buildMessages(lesson ? [user] : history, material, prefs.level, local ? 6 : 16),
     });
   };
+
+  /** "Teach me": a lesson on what's typed, or on an idea it picks from the material. */
+  const teach = (auto: boolean) => {
+    if (requestRef.current) return;
+    const topic = auto ? "" : input.trim();
+    if (!auto) setInput("");
+    const local = prefs.target === "local";
+    const budget = local ? LOCAL_BUDGET : LESSON_BUDGET;
+    const material = !selected.length
+      ? ""
+      : topic
+        ? buildMaterial(selected, topic, budget)
+        : lessonMaterial(selected, budget);
+    const content = lessonPrompt({
+      topic,
+      style: prefs.lessonStyle,
+      custom: prefs.lessonCustom,
+      length: prefs.lessonLength,
+      covered: readJson<string[]>(taughtKey, []),
+      hasMaterial: material !== "",
+    });
+    const style = lessonStyleLabel(prefs.lessonStyle, prefs.lessonCustom);
+    const shown = topic ? `Teach me: ${topic} (${style})` : `Teach me something (${style})`;
+    ask(messagesRef.current, { id: uid(), role: "user", content, shown, lesson: true }, topic, {
+      material,
+    });
+  };
+  latest.current.teach = teach;
 
   const sendRef = useRef<(mode: Mode, topic: string) => void>(() => undefined);
   const send = (mode: Mode, topic: string) => {
@@ -303,6 +402,12 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
     while (i >= 0 && ms[i]!.role !== "user") i -= 1;
     if (i < 0) return;
     const user = ms[i]!;
+    if (user.lesson) {
+      const budget = prefs.target === "local" ? LOCAL_BUDGET : LESSON_BUDGET;
+      const material = selected.length ? lessonMaterial(selected, budget) : "";
+      ask(ms.slice(0, i), { ...user, id: uid() }, "", { material });
+      return;
+    }
     ask(ms.slice(0, i), { ...user, id: uid() }, user.shown ? "" : user.content);
   };
 
@@ -373,7 +478,7 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
       setHandsFree(false);
     }
   };
-  latest.current = { listen };
+  latest.current.listen = listen;
 
   const toggleHandsFree = () => {
     if (handsFree) {
@@ -427,7 +532,14 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
   };
 
   const stop = () => {
-    if (requestRef.current) void window.mypa.tutor.cancel(requestRef.current);
+    if (!requestRef.current) return;
+    void window.mypa.tutor.cancel(requestRef.current);
+    // settle now rather than waiting for the model to notice, and drop a reply that never started
+    requestRef.current = null;
+    setBusy(false);
+    setStatus("");
+    const replyId = replyRef.current;
+    setMessages((ms) => ms.filter((m) => m.id !== replyId || m.content !== ""));
   };
 
   const clear = () => {
@@ -561,7 +673,46 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
               Add a video, PDF, article or link in the Transcribe widget, then it shows up here.
             </p>
           )}
-          {ready.map((t) => (
+          {ready.length > 0 && (
+            <div className="tut__sources-tools">
+              {ready.length > 4 && (
+                <input
+                  type="search"
+                  className="tut__sources-search"
+                  placeholder="Filter by title"
+                  aria-label="Filter transcripts by title"
+                  value={sourceQuery}
+                  onChange={(e) => setSourceQuery(e.target.value)}
+                />
+              )}
+              <button
+                type="button"
+                disabled={listed.every((t) => selected.some((s) => s.id === t.id))}
+                onClick={() =>
+                  setSources(
+                    listed.map((t) => t.id),
+                    true,
+                  )
+                }
+              >
+                {sourceFilter ? "Select these" : "Select all"}
+              </button>
+              <button
+                type="button"
+                disabled={!listed.some((t) => selected.some((s) => s.id === t.id))}
+                onClick={() =>
+                  setSources(
+                    listed.map((t) => t.id),
+                    false,
+                  )
+                }
+              >
+                {sourceFilter ? "Unselect these" : "Unselect all"}
+              </button>
+            </div>
+          )}
+          {sourceFilter && listed.length === 0 && <p>No titles match “{sourceQuery.trim()}”.</p>}
+          {listed.map((t) => (
             <label key={t.id}>
               <input
                 type="checkbox"
@@ -593,6 +744,9 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
               <>
                 <p className="blankstate__text">Start with one of these, or just ask.</p>
                 <div className="tut__starters">
+                  <button type="button" disabled={busy} onClick={() => teach(false)}>
+                    Teach me something from my material
+                  </button>
                   <button
                     type="button"
                     disabled={busy}
@@ -672,12 +826,23 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
                       {m.id === lastAnswerId && (
                         <button
                           type="button"
-                          aria-label="Answer again"
-                          title="Answer again"
+                          aria-label={m.lesson ? "Teach it again differently" : "Answer again"}
+                          title={m.lesson ? "Teach it again differently" : "Answer again"}
                           disabled={busy}
                           onClick={retry}
                         >
                           <RotateCcw size={13} />
+                        </button>
+                      )}
+                      {m.lesson && m.id === lastAnswerId && (
+                        <button
+                          type="button"
+                          className="tut__next"
+                          disabled={busy}
+                          onClick={() => teach(true)}
+                        >
+                          <GraduationCap size={13} />
+                          Next lesson
                         </button>
                       )}
                     </div>
@@ -735,7 +900,111 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
         )}
       </div>
 
+      {lessonOpen && (
+        <div className="tut__lesson">
+          <div className="tut__lesson-row">
+            <label className="tut__lesson-field">
+              <span>Teaching style</span>
+              <select
+                className="field tut__select"
+                value={prefs.lessonStyle}
+                onChange={(e) => patchPrefs({ lessonStyle: e.target.value as LessonStyle })}
+              >
+                {LESSON_STYLES.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="tut__lesson-field tut__lesson-field--narrow">
+              <span>Length</span>
+              <select
+                className="field tut__select"
+                value={prefs.lessonLength}
+                onChange={(e) => patchPrefs({ lessonLength: e.target.value as LessonLength })}
+              >
+                {(Object.keys(LESSON_LENGTH) as LessonLength[]).map((l) => (
+                  <option key={l} value={l}>
+                    {LESSON_LENGTH[l].label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {prefs.lessonStyle === "custom" ? (
+            <input
+              className="field tut__lesson-custom"
+              aria-label="Describe the teaching style"
+              placeholder="e.g. like Jim Rohn: calm, philosophical, lots of stories"
+              value={prefs.lessonCustom}
+              onChange={(e) => patchPrefs({ lessonCustom: e.target.value })}
+            />
+          ) : (
+            <p className="tut__lesson-hint">
+              {LESSON_STYLES.find((s) => s.id === prefs.lessonStyle)?.hint}.
+            </p>
+          )}
+          <label className="tut__lesson-check">
+            <input
+              type="checkbox"
+              checked={prefs.lessonVoice}
+              onChange={(e) => patchPrefs({ lessonVoice: e.target.checked })}
+            />
+            Read lessons aloud
+            <button
+              type="button"
+              className="tut__link"
+              onClick={(e) => {
+                e.preventDefault(); // don't toggle the checkbox this sits in
+                setVoiceSettings(true);
+                setSettingsOpen(true);
+              }}
+            >
+              Choose voice
+            </button>
+          </label>
+          <label className={`tut__lesson-check${prefs.lessonVoice ? "" : " is-off"}`}>
+            <input
+              type="checkbox"
+              checked={prefs.lessonKeepGoing && prefs.lessonVoice}
+              disabled={!prefs.lessonVoice}
+              onChange={(e) => patchPrefs({ lessonKeepGoing: e.target.checked })}
+            />
+            Keep going: start the next lesson when one ends
+          </label>
+          <p className="tut__lesson-hint">
+            Type a topic below to choose what it teaches. Otherwise it picks an idea from your
+            selected material.
+          </p>
+        </div>
+      )}
+
       <div className="tut__modes">
+        <button
+          type="button"
+          className="tut__teach"
+          disabled={busy}
+          title={
+            input.trim()
+              ? `Teach me about “${input.trim()}”`
+              : "Pick an idea from my material and teach it to me"
+          }
+          onClick={() => teach(false)}
+        >
+          <GraduationCap size={13} />
+          Teach me
+        </button>
+        <button
+          type="button"
+          className={`tut__teach-opts${lessonOpen ? " is-on" : ""}`}
+          aria-label="Lesson options"
+          aria-expanded={lessonOpen}
+          title="Lesson options: style, length, voice"
+          onClick={() => setLessonOpen((v) => !v)}
+        >
+          <SlidersHorizontal size={13} />
+        </button>
         {(Object.keys(MODE_LABEL) as (keyof typeof MODE_LABEL)[]).map((m) => (
           <button
             key={m}
@@ -807,7 +1076,11 @@ export function TutorWidget({ widget }: { widget: WidgetRow }) {
 
       <TutorSettings
         open={settingsOpen}
-        onOpenChange={setSettingsOpen}
+        onOpenChange={(open) => {
+          setSettingsOpen(open);
+          if (!open) setVoiceSettings(false);
+        }}
+        showVoice={voiceSettings}
         config={config}
         onConfigChange={setConfig}
         engine={prefs.engine}

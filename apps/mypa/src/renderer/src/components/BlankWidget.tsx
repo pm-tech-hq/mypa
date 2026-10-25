@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
+import { History } from "lucide-react";
+
 import { useReadyStore } from "../lib/store";
-import type { WidgetRow } from "../../../shared/types";
+import type { NoteVersion, WidgetRow } from "../../../shared/types";
 import { Markdown, toggleTaskLine } from "./Markdown";
+import { NoteHistory } from "./NoteHistory";
 
 const SAVE_DELAY = 400;
 
@@ -21,6 +24,10 @@ export function BlankWidget({ widget }: { widget: WidgetRow }) {
   const timer = useRef<number | undefined>(undefined);
   const pending = useRef<string | null>(null);
   const caret = useRef<number | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  /** The text a restore replaced, for a few seconds of Undo. */
+  const [undoTo, setUndoTo] = useState<NoteVersion | null>(null);
+  const undoTimer = useRef<number | undefined>(undefined);
 
   // Adopt external changes (another instance of the same widget, a Tutor save).
   useEffect(() => {
@@ -53,16 +60,46 @@ export function BlankWidget({ widget }: { widget: WidgetRow }) {
   const change = (value: string, immediate = false) => {
     setNote(value);
     setSaved(false);
+    setUndoTo(null);
     pending.current = value;
     window.clearTimeout(timer.current);
     if (immediate) flush();
     else timer.current = window.setTimeout(flush, SAVE_DELAY);
   };
 
+  const openHistory = () => {
+    flush();
+    setHistoryOpen(true);
+  };
+
+  const restore = async (version: NoteVersion, current: NoteVersion | undefined) => {
+    flush();
+    await actions.restoreNoteVersion(widget.id, version.id);
+    setEditing(false);
+    window.clearTimeout(undoTimer.current);
+    setUndoTo(current ?? null);
+    undoTimer.current = window.setTimeout(() => setUndoTo(null), 8_000);
+  };
+
+  const undoRestore = () => {
+    window.clearTimeout(undoTimer.current);
+    if (undoTo) void actions.restoreNoteVersion(widget.id, undoTo.id);
+    setUndoTo(null);
+  };
+
+  useEffect(() => () => window.clearTimeout(undoTimer.current), []);
+
   const words = note.trim() ? note.trim().split(/\s+/).length : 0;
 
   return (
     <div className="note">
+      {historyOpen && (
+        <NoteHistory
+          widgetId={widget.id}
+          onRestore={restore}
+          onClose={() => setHistoryOpen(false)}
+        />
+      )}
       {editing ? (
         <textarea
           ref={editor}
@@ -113,7 +150,29 @@ export function BlankWidget({ widget }: { widget: WidgetRow }) {
         <span>
           {words} {words === 1 ? "word" : "words"}
         </span>
-        <span>{saved ? "Saved" : "Saving…"}</span>
+        <span className="note__foot-end">
+          {undoTo ? (
+            <>
+              Restored
+              <button type="button" className="note__foot-btn" onClick={undoRestore}>
+                Undo
+              </button>
+            </>
+          ) : (
+            <>
+              {saved ? "Saved" : "Saving…"}
+              <button
+                type="button"
+                className="note__foot-btn"
+                title="Earlier versions of this note"
+                onClick={openHistory}
+              >
+                <History size={12} aria-hidden />
+                History
+              </button>
+            </>
+          )}
+        </span>
       </div>
     </div>
   );

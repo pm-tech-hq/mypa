@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld("mypa", {
     updateWidgetSettings: (id: string, settings: unknown) =>
       ipcRenderer.invoke(IPC.widgetSettings, id, settings),
     deleteWidget: (id: string) => ipcRenderer.invoke(IPC.widgetDelete, id),
+    noteHistory: (widgetId: string) => ipcRenderer.invoke(IPC.noteHistory, widgetId),
+    restoreNoteVersion: (widgetId: string, versionId: string) =>
+      ipcRenderer.invoke(IPC.noteRestore, widgetId, versionId),
 
     createGoal: (input: unknown) => ipcRenderer.invoke(IPC.goalCreate, input),
     updateGoal: (id: string, patch: unknown) => ipcRenderer.invoke(IPC.goalUpdate, id, patch),
@@ -113,7 +116,11 @@ contextBridge.exposeInMainWorld("mypa", {
       ipcRenderer.on(TUTOR_IPC.chatEvent, handler);
       return () => ipcRenderer.removeListener(TUTOR_IPC.chatEvent, handler);
     },
-    speak: (text: string, voice: string) => ipcRenderer.invoke(TUTOR_IPC.speak, text, voice),
+    speak: (text: string, voice: string, engine?: string) =>
+      ipcRenderer.invoke(TUTOR_IPC.speak, text, voice, engine),
+    setVoiceKey: (service: string, key: string) =>
+      ipcRenderer.invoke(TUTOR_IPC.setVoiceKey, service, key),
+    listVoices: (service: string) => ipcRenderer.invoke(TUTOR_IPC.listVoices, service),
     transcribeMic: (samples: Float32Array) => ipcRenderer.invoke(TUTOR_IPC.transcribeMic, samples),
   },
   system: {

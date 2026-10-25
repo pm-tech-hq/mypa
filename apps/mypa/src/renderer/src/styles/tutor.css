@@ -117,7 +117,7 @@
 
 .tut__sources {
   flex: 0 0 auto;
-  max-height: 120px;
+  max-height: 180px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -166,6 +166,67 @@
   font-size: var(--ds-text-2xs);
   color: var(--ds-muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* Bulk select: stays in view while the list scrolls under it. */
+.tut__sources-tools {
+  position: sticky;
+  top: -4px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: -4px -4px 2px;
+  padding: 4px;
+  background: var(--ds-surface);
+  border-bottom: 1px solid var(--ds-border);
+}
+
+.tut__sources-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 24px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-fg);
+  background: var(--ds-sunken);
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-sm);
+  outline: none;
+}
+
+.tut__sources-search:focus {
+  border-color: var(--ds-accent);
+}
+
+.tut__sources-tools button,
+.tut__link {
+  appearance: none;
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: none;
+  color: var(--ds-accent-ink);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+}
+
+.tut__sources-tools button:hover:not(:disabled),
+.tut__link:hover {
+  background: var(--ds-accent-soft);
+}
+
+.tut__sources-tools button:disabled {
+  color: var(--ds-faint);
+  cursor: default;
+}
+
+.tut__sources-tools > button:first-child {
+  margin-left: auto;
 }
 
 .tut__chat {
@@ -315,6 +376,124 @@
 .tut__modes button:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+/* "Teach me" leads the row; its options button sits right beside it. */
+.tut__modes .tut__teach {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--ds-accent);
+  border-color: var(--ds-accent);
+  color: var(--ds-accent-fg);
+  font-weight: var(--ds-weight-medium);
+}
+
+.tut__modes .tut__teach:hover:not(:disabled) {
+  background: var(--ds-accent-hover);
+  border-color: var(--ds-accent-hover);
+  color: var(--ds-accent-fg);
+}
+
+.tut__modes .tut__teach-opts {
+  display: grid;
+  place-items: center;
+  width: var(--ds-control-sm);
+  padding: 0;
+  margin-left: -3px;
+  color: var(--ds-muted);
+}
+
+.tut__modes .tut__teach-opts.is-on {
+  border-color: var(--ds-accent);
+  color: var(--ds-accent-ink);
+  background: var(--ds-accent-soft);
+}
+
+.tut__msg-actions .tut__next {
+  width: auto;
+  display: inline-flex;
+  gap: 5px;
+  padding: 0 8px;
+  margin-left: auto;
+  color: var(--ds-accent-ink);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-medium);
+}
+
+.tut__msg-actions .tut__next:hover:not(:disabled) {
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent-ink);
+}
+
+.tut__lesson {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--ds-sunken);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  font-size: var(--ds-text-xs);
+  animation: reveal-down var(--ds-dur) var(--ds-ease-out);
+}
+
+.tut__lesson-row {
+  display: flex;
+  gap: 8px;
+}
+
+.tut__lesson-field {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: var(--ds-fg-2);
+  font-weight: var(--ds-weight-medium);
+}
+
+.tut__lesson-field--narrow {
+  flex: 0 0 132px;
+}
+
+.tut__lesson-field .tut__select {
+  width: 100%;
+  font-weight: var(--ds-weight-regular);
+}
+
+.tut__lesson-custom {
+  width: 100%;
+  font-size: var(--ds-text-xs);
+}
+
+.tut__lesson-hint {
+  margin: 0;
+  color: var(--ds-muted);
+  line-height: 1.45;
+}
+
+.tut__lesson-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ds-fg);
+  cursor: pointer;
+}
+
+.tut__lesson-check input {
+  accent-color: var(--ds-accent);
+}
+
+.tut__lesson-check.is-off {
+  color: var(--ds-faint);
+  cursor: default;
+}
+
+.tut__lesson-check .tut__link {
+  margin-left: auto;
 }
 
 /* One composer: the field and its buttons share a single frame. */
@@ -478,6 +657,35 @@
   display: flex;
   justify-content: flex-end;
   gap: 6px;
+}
+
+.tut-set__keyrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tut-set__keyrow > span {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-fg-2);
+}
+
+.tut-set__keyrow > span svg {
+  color: var(--ds-accent-ink);
+}
+
+.tut-set__keyrow .tut__select {
+  flex: 1 1 auto;
+}
+
+.tut-set__error {
+  margin: 2px 0 0;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-danger);
 }
 
 /* ---- save-to-tasks panel ------------------------------------------------ */

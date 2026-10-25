@@ -12,6 +12,7 @@ import type {
   ProviderInfo,
   SaveProviderInput,
   TutorConfig,
+  VoiceService,
 } from "../../shared/tutor";
 
 interface StoredProvider extends Omit<ProviderInfo, "hasKey"> {
@@ -22,6 +23,8 @@ interface StoredProvider extends Omit<ProviderInfo, "hasKey"> {
 interface Stored {
   providers: StoredProvider[];
   localModel: LocalModelId;
+  /** Encrypted like provider keys. */
+  voiceKeys: Partial<Record<VoiceService, string>>;
 }
 
 const file = (): string => path.join(app.getPath("userData"), "tutor-config.json");
@@ -30,12 +33,16 @@ function load(): Stored {
   try {
     if (existsSync(file())) {
       const raw = JSON.parse(readFileSync(file(), "utf8")) as Partial<Stored>;
-      return { providers: raw.providers ?? [], localModel: raw.localModel ?? "qwen-1.5b" };
+      return {
+        providers: raw.providers ?? [],
+        localModel: raw.localModel ?? "qwen-1.5b",
+        voiceKeys: raw.voiceKeys ?? {},
+      };
     }
   } catch {
     /* corrupt file — fall back to defaults */
   }
-  return { providers: [], localModel: "qwen-1.5b" };
+  return { providers: [], localModel: "qwen-1.5b", voiceKeys: {} };
 }
 
 function save(s: Stored): void {
@@ -63,7 +70,38 @@ function publicView(s: Stored): TutorConfig {
   return {
     localModel: s.localModel,
     providers: s.providers.map(({ key, ...p }) => ({ ...p, hasKey: key !== "" })),
+    voiceKeys: {
+      openai: s.voiceKeys.openai ? "saved" : openAiProvider(s) ? "provider" : null,
+      elevenlabs: s.voiceKeys.elevenlabs ? "saved" : null,
+    },
   };
+}
+
+/** An OpenAI chat provider whose key can also be used for OpenAI voices. */
+function openAiProvider(s: Stored): StoredProvider | undefined {
+  return s.providers.find(
+    (p) => p.type === "openai" && p.key !== "" && /^https:\/\/api\.openai\.com\b/.test(p.baseUrl),
+  );
+}
+
+export function setVoiceKey(service: VoiceService, key: string): TutorConfig {
+  const s = load();
+  s.voiceKeys = { ...s.voiceKeys, [service]: encrypt(key.trim()) };
+  if (!s.voiceKeys[service]) delete s.voiceKeys[service];
+  save(s);
+  return publicView(s);
+}
+
+/** Main-process only: the decrypted key for a voice service ("" when there is none). */
+export function getVoiceKey(service: VoiceService): string {
+  const s = load();
+  const own = s.voiceKeys[service];
+  if (own) return decrypt(own);
+  if (service === "openai") {
+    const p = openAiProvider(s);
+    if (p) return decrypt(p.key);
+  }
+  return "";
 }
 
 export function getConfig(): TutorConfig {

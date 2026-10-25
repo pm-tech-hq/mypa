@@ -838,7 +838,13 @@ export function streamChat(
   const requestId = crypto.randomUUID();
   let text = "";
   let off = () => {};
+  let stop = () => {};
   const done = new Promise<string>((resolve, reject) => {
+    // settle on cancel rather than waiting for the model to notice
+    stop = () => {
+      off();
+      resolve(text);
+    };
     off = window.mypa.tutor.onChatEvent((e) => {
       if (e.requestId !== requestId) return;
       if (e.type === "delta") {
@@ -856,7 +862,13 @@ export function streamChat(
       reject(err instanceof Error ? err : new Error(String(err)));
     });
   });
-  return { done, cancel: () => void window.mypa.tutor.cancel(requestId) };
+  return {
+    done,
+    cancel: () => {
+      void window.mypa.tutor.cancel(requestId);
+      stop();
+    },
+  };
 }
 
 /** The material around a card's quote, for explaining it. */

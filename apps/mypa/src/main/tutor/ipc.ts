@@ -6,7 +6,9 @@ import {
   type ChatRequest,
   type LocalModelId,
   type SaveProviderInput,
+  type VoiceService,
 } from "../../shared/tutor";
+import { listCloudVoices, speakCloud } from "./cloud-voices";
 import * as config from "./config";
 import { streamLocal } from "./local";
 import { streamProvider } from "./providers";
@@ -68,7 +70,15 @@ export function registerTutorHandlers(): void {
     running.get(requestId)?.abort();
   });
 
-  ipcMain.handle(TUTOR_IPC.speak, (_e, text: string, voice: string) => speak(text, voice));
+  ipcMain.handle(TUTOR_IPC.speak, (_e, text: string, voice: string, engine?: string) =>
+    engine === "openai" || engine === "elevenlabs"
+      ? speakCloud(engine, text, voice)
+      : speak(text, voice),
+  );
+  ipcMain.handle(TUTOR_IPC.setVoiceKey, (_e, service: VoiceService, key: string) =>
+    config.setVoiceKey(service, key),
+  );
+  ipcMain.handle(TUTOR_IPC.listVoices, (_e, service: VoiceService) => listCloudVoices(service));
 
   ipcMain.handle(TUTOR_IPC.transcribeMic, (_e, samples: Float32Array) =>
     transcribeAudio(new Float32Array(samples), "base", () => undefined),

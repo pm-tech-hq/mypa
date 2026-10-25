@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Check, Pencil, Trash2 } from "lucide-react";
+import { Check, Pencil, Square, Trash2, Volume2 } from "lucide-react";
 
 import {
   KOKORO_VOICES,
   LOCAL_MODELS,
+  OPENAI_VOICES,
   type ProviderInfo,
   type ProviderType,
   type TutorConfig,
+  type VoiceService,
 } from "../../../shared/tutor";
-import type { Engine } from "../lib/tutor";
+import { ENGINE_LABEL, errorText, Speaker, type Engine } from "../lib/tutor";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Input } from "./ui/input";
@@ -75,6 +77,8 @@ interface Props {
   voice?: string;
   onVoiceChange?: (voice: string) => void;
   title?: string;
+  /** Scroll straight to the voice settings when the dialog opens. */
+  showVoice?: boolean;
 }
 
 export function TutorSettings({
@@ -87,9 +91,23 @@ export function TutorSettings({
   voice,
   onVoiceChange,
   title = "Tutor settings",
+  showVoice = false,
 }: Props) {
+  const voiceSection = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!open || !showVoice) return;
+    // after the dialog has laid out
+    const t = window.setTimeout(() => voiceSection.current?.scrollIntoView({ block: "start" }), 50);
+    return () => window.clearTimeout(t);
+  }, [open, showVoice]);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [systemVoices, setSystemVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [cloudVoices, setCloudVoices] = useState<{ id: string; label: string }[]>([]);
+  const [voiceKey, setVoiceKey] = useState("");
+  const [replacingKey, setReplacingKey] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [previewing, setPreviewing] = useState(false);
+  const speaker = useMemo(() => new Speaker(), []);
 
   useEffect(() => {
     if (!open) return;
@@ -129,10 +147,64 @@ export function TutorSettings({
   };
 
   const canSave = draft && draft.name.trim() !== "" && draft.model.trim() !== "";
+
+  const cloud: VoiceService | null = engine === "openai" || engine === "elevenlabs" ? engine : null;
+  const keySource = cloud ? (config?.voiceKeys?.[cloud] ?? null) : null;
+  const hasVoiceKey = keySource !== null;
+
+  useEffect(() => {
+    setVoiceKey("");
+    setReplacingKey(false);
+    setCloudVoices([]);
+    if (!open || cloud !== "elevenlabs" || !hasVoiceKey) return;
+    let live = true;
+    tutor
+      .listVoices("elevenlabs")
+      .then((vs) => live && setCloudVoices(vs))
+      .catch((err: unknown) => live && setVoiceError(errorText(err)));
+    return () => {
+      live = false;
+    };
+  }, [open, cloud, hasVoiceKey, tutor]);
+
+  useEffect(() => () => speaker.stop(), [speaker]);
+
+  const saveVoiceKey = async (key: string) => {
+    if (!cloud) return;
+    setVoiceError(null);
+    onConfigChange(await tutor.setVoiceKey(cloud, key));
+    if (!key) onVoiceChange?.("");
+  };
+
+  const preview = async () => {
+    if (!engine) return;
+    if (previewing) {
+      speaker.stop();
+      setPreviewing(false);
+      return;
+    }
+    setVoiceError(null);
+    setPreviewing(true);
+    try {
+      await speaker.speak(
+        "Hi! This is how I'll sound when I teach you. Let's learn something useful today.",
+        { engine, voice: voice || (engine === "neural" ? "af_heart" : "") },
+      );
+    } catch (err) {
+      setVoiceError(errorText(err));
+    } finally {
+      setPreviewing(false);
+    }
+  };
+
   const voiceOptions =
     engine === "neural"
-      ? KOKORO_VOICES.map((v) => ({ id: v.id, label: v.label }))
-      : systemVoices.map((v) => ({ id: v.voiceURI, label: `${v.name} (${v.lang})` }));
+      ? KOKORO_VOICES
+      : engine === "openai"
+        ? OPENAI_VOICES
+        : engine === "elevenlabs"
+          ? cloudVoices
+          : systemVoices.map((v) => ({ id: v.voiceURI, label: `${v.name} (${v.lang})` }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -297,7 +369,7 @@ export function TutorSettings({
         </section>
 
         {engine && onEngineChange && onVoiceChange && (
-          <section className="tut-set">
+          <section className="tut-set" ref={voiceSection}>
             <h4>Voice</h4>
             <div className="tut-set__field">
               <Label>Engine</Label>
@@ -307,26 +379,93 @@ export function TutorSettings({
                 onChange={(e) => {
                   onEngineChange(e.target.value as Engine);
                   onVoiceChange("");
+                  setVoiceError(null);
                 }}
               >
-                <option value="system">System voice: instant, basic quality</option>
-                <option value="neural">Neural voice: natural, ~90 MB download on first use</option>
-              </select>
-            </div>
-            <div className="tut-set__field">
-              <Label>Voice</Label>
-              <select
-                className="field tut__select"
-                value={voice}
-                onChange={(e) => onVoiceChange(e.target.value)}
-              >
-                <option value="">Default</option>
-                {voiceOptions.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.label}
+                {(Object.keys(ENGINE_LABEL) as Engine[]).map((e) => (
+                  <option key={e} value={e}>
+                    {ENGINE_LABEL[e]}
                   </option>
                 ))}
               </select>
+            </div>
+            {cloud && (
+              <div className="tut-set__field">
+                <Label htmlFor="tv-key">{cloud === "openai" ? "OpenAI" : "ElevenLabs"} API key</Label>
+                {hasVoiceKey && !replacingKey ? (
+                  <div className="tut-set__keyrow">
+                    <span>
+                      <Check size={13} />
+                      {keySource === "provider" ? "Using your OpenAI provider's key" : "Key saved"}
+                    </span>
+                    <button type="button" className="tut__link" onClick={() => setReplacingKey(true)}>
+                      {keySource === "provider" ? "Use another key" : "Replace"}
+                    </button>
+                    {keySource === "saved" && (
+                      <button
+                        type="button"
+                        className="tut__link"
+                        onClick={() => void saveVoiceKey("")}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="tut-set__keyrow">
+                    <Input
+                      id="tv-key"
+                      type="password"
+                      autoComplete="off"
+                      placeholder={cloud === "openai" ? "sk-…" : "Your ElevenLabs API key"}
+                      value={voiceKey}
+                      onChange={(e) => setVoiceKey(e.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={!voiceKey.trim()}
+                      onClick={() => void saveVoiceKey(voiceKey)}
+                    >
+                      Save key
+                    </Button>
+                  </div>
+                )}
+                <p className="tut-set__hint">
+                  The text being read aloud is sent to{" "}
+                  {cloud === "openai" ? "OpenAI" : "ElevenLabs"}, which charges your account for it.
+                  The key is encrypted and stays on this device.
+                </p>
+              </div>
+            )}
+            <div className="tut-set__field">
+              <Label>Voice</Label>
+              <div className="tut-set__keyrow">
+                <select
+                  className="field tut__select"
+                  value={voice}
+                  disabled={cloud !== null && !hasVoiceKey}
+                  onChange={(e) => onVoiceChange(e.target.value)}
+                >
+                  <option value="">Default</option>
+                  {voiceOptions.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.label}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={cloud !== null && !hasVoiceKey}
+                  onClick={() => void preview()}
+                >
+                  {previewing ? <Square size={13} /> : <Volume2 size={13} />}
+                  {previewing ? "Stop" : "Preview"}
+                </Button>
+              </div>
+              {voiceError && <p className="tut-set__error">{voiceError}</p>}
             </div>
           </section>
         )}

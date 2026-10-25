@@ -35,6 +35,7 @@ import {
   type NewStep,
   type NewTask,
   type NewWidget,
+  type NoteVersion,
   type PageRow,
   type Snapshot,
   type StepRow,
@@ -122,6 +123,7 @@ function removeOrphans(): void {
   run(
     `DELETE FROM calendar_remote_events WHERE account_id NOT IN (SELECT id FROM calendar_accounts)`,
   );
+  run(`DELETE FROM note_versions WHERE widget_id NOT IN (SELECT id FROM widgets)`);
 }
 
 function scheduleSave(): void {
@@ -246,6 +248,13 @@ CREATE TABLE IF NOT EXISTS transcripts (
   duration_ms INTEGER, word_count INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS note_versions (
+  id TEXT PRIMARY KEY,
+  widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+  text TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_note_versions_widget ON note_versions(widget_id, updated_at);
 `;
 
 /* --------------------------------------------------------------- row maps -- */
@@ -757,15 +766,102 @@ export function updateWidget(
   patch("widgets", id, cols);
 }
 
-export function updateWidgetSettings(id: string, settings: WidgetSettings): void {
-  const row = get(`SELECT settings FROM widgets WHERE id = ?`, [id]);
+/**
+ * `checkpoint` keeps a note's previous text as its own version (for edits made
+ * by the assistant, a Tutor save or a restore) instead of folding the change
+ * into the version being typed.
+ */
+export function updateWidgetSettings(
+  id: string,
+  settings: WidgetSettings,
+  opts: { checkpoint?: boolean } = {},
+): void {
+  const row = get(`SELECT kind, settings FROM widgets WHERE id = ?`, [id]);
   let current: WidgetSettings = {};
   try {
     current = row ? (JSON.parse(String(row.settings)) as WidgetSettings) : {};
   } catch {
     /* keep {} */
   }
+  if (row?.kind === "blank" && typeof settings.note === "string") {
+    recordNoteVersion(id, String(current.note ?? ""), settings.note, opts.checkpoint === true);
+  }
   patch("widgets", id, [["settings", JSON.stringify({ ...current, ...settings })]]);
+}
+
+/* ----------------------------------------------------------- note history -- */
+
+/** Typing that pauses for less than this continues the same version… */
+const NOTE_PAUSE = 5 * 60_000;
+/** …but a long session still gets a version every so often. */
+const NOTE_SPAN = 30 * 60_000;
+const NOTE_KEEP = 100;
+
+function recordNoteVersion(widgetId: string, before: string, after: string, checkpoint: boolean) {
+  if (before === after) return;
+  const now = Date.now();
+  let head = get(
+    `SELECT id, text, created_at, updated_at FROM note_versions
+     WHERE widget_id = ? ORDER BY updated_at DESC, created_at DESC LIMIT 1`,
+    [widgetId],
+  );
+  // a note written before history existed: keep what it said
+  if ((!head || String(head.text) !== before) && before.trim()) {
+    run(
+      `INSERT INTO note_versions (id, widget_id, text, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+      [randomUUID(), widgetId, before, now, now],
+    );
+    head = undefined;
+  }
+  // A big deletion starts a new version, so the text it removed stays in history.
+  const lost = before.length - after.length;
+  const deleted = lost > 80 && lost > before.length / 3;
+  const continues =
+    head &&
+    !checkpoint &&
+    !deleted &&
+    now - Number(head.updated_at) < NOTE_PAUSE &&
+    now - Number(head.created_at) < NOTE_SPAN;
+  if (continues) {
+    run(`UPDATE note_versions SET text = ?, updated_at = ? WHERE id = ?`, [
+      after,
+      now,
+      String(head!.id),
+    ]);
+  } else {
+    run(
+      `INSERT INTO note_versions (id, widget_id, text, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+      [randomUUID(), widgetId, after, now, now],
+    );
+  }
+  run(
+    `DELETE FROM note_versions WHERE widget_id = ? AND id NOT IN (
+       SELECT id FROM note_versions WHERE widget_id = ?
+       ORDER BY updated_at DESC, created_at DESC LIMIT ?)`,
+    [widgetId, widgetId, NOTE_KEEP],
+  );
+}
+
+/** Newest first. */
+export function listNoteVersions(widgetId: string): NoteVersion[] {
+  return all(
+    `SELECT * FROM note_versions WHERE widget_id = ? ORDER BY updated_at DESC, created_at DESC`,
+    [widgetId],
+  ).map((r) => ({
+    id: String(r.id),
+    text: String(r.text),
+    createdAt: Number(r.created_at),
+    updatedAt: Number(r.updated_at),
+  }));
+}
+
+/** Puts an old version back as the note's text (itself a new version, so it can be undone). */
+export function restoreNoteVersion(widgetId: string, versionId: string): void {
+  const v = get(`SELECT text FROM note_versions WHERE id = ? AND widget_id = ?`, [
+    versionId,
+    widgetId,
+  ]);
+  if (v) updateWidgetSettings(widgetId, { note: String(v.text) }, { checkpoint: true });
 }
 
 export function deleteWidget(id: string): void {
