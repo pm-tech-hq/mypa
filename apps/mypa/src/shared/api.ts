@@ -16,6 +16,7 @@ import type {
   NewUrlMediaTranscript,
   NewWidget,
   NoteVersion,
+  ClosedNote,
   PageRow,
   RetryTranscript,
   Snapshot,
@@ -51,6 +52,7 @@ export const IPC = {
   widgetDelete: "db:widget:delete",
   noteHistory: "db:note:history",
   noteRestore: "db:note:restore",
+  notesClosed: "db:note:closed",
 
   goalCreate: "db:goal:create",
   goalUpdate: "db:goal:update",
@@ -113,7 +115,10 @@ export interface MypaDb {
   deleteWidget: (id: string) => Promise<Snapshot>;
   /** A note widget's saved versions, newest (the current text) first. */
   noteHistory: (widgetId: string) => Promise<NoteVersion[]>;
+  /** Accepts a closed note's version too (see `closedNotes`). */
   restoreNoteVersion: (widgetId: string, versionId: string) => Promise<Snapshot>;
+  /** Notes whose widget was closed, newest first. */
+  closedNotes: () => Promise<ClosedNote[]>;
 
   createGoal: (input: NewGoal) => Promise<Snapshot>;
   updateGoal: (id: string, patch: Partial<GoalRow>) => Promise<Snapshot>;

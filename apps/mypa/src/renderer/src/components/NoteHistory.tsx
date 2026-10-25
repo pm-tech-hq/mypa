@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { ArrowLeft, Copy, Loader2, RotateCcw, X } from "lucide-react";
 
-import type { NoteVersion } from "../../../shared/types";
+import type { ClosedNote, NoteVersion } from "../../../shared/types";
 import { Markdown } from "./Markdown";
 import { Button } from "./ui/button";
 
@@ -85,7 +85,8 @@ function diffLines(from: string, to: string): DiffLine[] {
 
 /**
  * The note's earlier versions: each stretch of writing is kept as one. Pick
- * one to read it, see what changed since, copy it or put it back.
+ * one to read it, see what changed since, copy it or put it back. Notes that
+ * were closed are listed too, so closing a note never loses what it said.
  */
 export function NoteHistory({
   widgetId,
@@ -98,6 +99,7 @@ export function NoteHistory({
   onClose: () => void;
 }) {
   const [versions, setVersions] = useState<NoteVersion[] | null>(null);
+  const [closed, setClosed] = useState<ClosedNote[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [compare, setCompare] = useState(false);
@@ -106,9 +108,12 @@ export function NoteHistory({
 
   useEffect(() => {
     let live = true;
-    window.mypa.db
-      .noteHistory(widgetId)
-      .then((vs) => live && setVersions(vs))
+    Promise.all([window.mypa.db.noteHistory(widgetId), window.mypa.db.closedNotes()])
+      .then(([vs, cs]) => {
+        if (!live) return;
+        setVersions(vs);
+        setClosed(cs);
+      })
       .catch((err: unknown) => live && setError(err instanceof Error ? err.message : String(err)));
     return () => {
       live = false;
@@ -116,7 +121,10 @@ export function NoteHistory({
   }, [widgetId]);
 
   const current = versions?.[0];
-  const open = versions?.find((v) => v.id === openId);
+  const openClosed = closed.find((c) => c.id === openId);
+  const open = versions?.find((v) => v.id === openId) ?? openClosed;
+  /** An empty note takes a closed note's whole history; any other just its text. */
+  const emptyNow = !current?.text.trim();
   const diff = useMemo(
     () => (open && current && compare ? diffLines(open.text, current.text) : null),
     [open, current, compare],
@@ -153,7 +161,7 @@ export function NoteHistory({
             }}
           >
             <ArrowLeft size={14} />
-            {when(open.updatedAt)}
+            {openClosed ? "Closed note" : when(open.updatedAt)}
           </button>
         ) : (
           <span>History</span>
@@ -182,6 +190,14 @@ export function NoteHistory({
         )
       ) : open ? (
         <>
+          {openClosed && (
+            <p className="nhist__hint">
+              Last edited {when(openClosed.updatedAt)}.{" "}
+              {emptyNow
+                ? `Restore brings it back here with its history (${openClosed.versions} ${openClosed.versions === 1 ? "version" : "versions"}).`
+                : "Restore puts its text in this note. This note's text stays in its history."}
+            </p>
+          )}
           <div className="nhist__view">
             {diff ? (
               changed === 0 ? (
@@ -205,7 +221,7 @@ export function NoteHistory({
             )}
           </div>
           <div className="nhist__actions">
-            {open.id !== current?.id && (
+            {current && open.id !== current.id && (
               <label className="nhist__toggle">
                 <input
                   type="checkbox"
@@ -228,30 +244,54 @@ export function NoteHistory({
             )}
           </div>
         </>
-      ) : versions.length === 0 ? (
-        <p className="nhist__empty">
-          No history yet. Versions are kept as you write, one for each stretch of editing.
-        </p>
       ) : (
-        <ul className="nhist__list">
-          {versions.map((v, i) => {
-            const words = wordCount(v.text);
-            return (
-              <li key={v.id}>
-                <button type="button" className="nhist__item" onClick={() => setOpenId(v.id)}>
-                  <span className="nhist__meta num">
-                    <span className="nhist__when">{when(v.updatedAt)}</span>
-                    {i === 0 && <span className="nhist__tag">Current</span>}
-                    <span className="nhist__words">
-                      {words} {words === 1 ? "word" : "words"}
-                    </span>
-                  </span>
-                  <span className="nhist__preview">{preview(v.text) || "Empty note"}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="nhist__lists">
+          {versions.length === 0 ? (
+            <p className="nhist__empty">
+              No history yet. Versions are kept as you write, one for each stretch of editing.
+            </p>
+          ) : (
+            <ul className="nhist__list">
+              {versions.map((v, i) => {
+                const words = wordCount(v.text);
+                return (
+                  <li key={v.id}>
+                    <button type="button" className="nhist__item" onClick={() => setOpenId(v.id)}>
+                      <span className="nhist__meta num">
+                        <span className="nhist__when">{when(v.updatedAt)}</span>
+                        {i === 0 && <span className="nhist__tag">Current</span>}
+                        <span className="nhist__words">
+                          {words} {words === 1 ? "word" : "words"}
+                        </span>
+                      </span>
+                      <span className="nhist__preview">{preview(v.text) || "Empty note"}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {closed.length > 0 && (
+            <>
+              <h3 className="nhist__section">Closed notes</h3>
+              <ul className="nhist__list">
+                {closed.map((c) => (
+                  <li key={c.id}>
+                    <button type="button" className="nhist__item" onClick={() => setOpenId(c.id)}>
+                      <span className="nhist__meta num">
+                        <span className="nhist__when">{when(c.updatedAt)}</span>
+                        <span className="nhist__words">
+                          {c.versions} {c.versions === 1 ? "version" : "versions"}
+                        </span>
+                      </span>
+                      <span className="nhist__preview">{preview(c.text)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
       )}
     </div>
   );

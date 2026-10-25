@@ -149,6 +149,7 @@ function registerDbHandlers(): void {
     return snap();
   });
   ipcMain.handle(IPC.noteHistory, (_e, widgetId: string) => db.listNoteVersions(widgetId));
+  ipcMain.handle(IPC.notesClosed, () => db.listClosedNotes());
   ipcMain.handle(IPC.noteRestore, (_e, widgetId: string, versionId: string) => {
     db.restoreNoteVersion(widgetId, versionId);
     return snap();

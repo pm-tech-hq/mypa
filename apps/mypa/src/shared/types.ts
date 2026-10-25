@@ -189,6 +189,13 @@ export interface NoteVersion {
   updatedAt: number;
 }
 
+/** A closed note widget's last text, kept with its history so it can be brought back. */
+export interface ClosedNote extends NoteVersion {
+  widgetId: string;
+  /** How many versions come back with it. */
+  versions: number;
+}
+
 /** Settings of a `custom` widget instance. */
 export interface CustomSettings {
   /** Manifest id of the installed widget this instance runs. */

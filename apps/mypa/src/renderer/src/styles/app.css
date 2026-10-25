@@ -810,13 +810,32 @@ select.field:disabled {
   background: var(--ds-hover);
 }
 
-.nhist__list {
+.nhist__lists {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+}
+
+.nhist__list {
   margin: 0;
   padding: 6px;
   list-style: none;
+}
+
+.nhist__section {
+  margin: 6px 16px 0;
+  color: var(--ds-faint);
+  font-size: var(--ds-text-2xs);
+  font-weight: var(--ds-weight-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.nhist__hint {
+  margin: 0;
+  padding: 10px 16px 0;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
 }
 
 .nhist__item {

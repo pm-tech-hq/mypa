@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld("mypa", {
     noteHistory: (widgetId: string) => ipcRenderer.invoke(IPC.noteHistory, widgetId),
     restoreNoteVersion: (widgetId: string, versionId: string) =>
       ipcRenderer.invoke(IPC.noteRestore, widgetId, versionId),
+    closedNotes: () => ipcRenderer.invoke(IPC.notesClosed),
 
     createGoal: (input: unknown) => ipcRenderer.invoke(IPC.goalCreate, input),
     updateGoal: (id: string, patch: unknown) => ipcRenderer.invoke(IPC.goalUpdate, id, patch),

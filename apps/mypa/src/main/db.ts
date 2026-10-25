@@ -35,6 +35,7 @@ import {
   type NewStep,
   type NewTask,
   type NewWidget,
+  type ClosedNote,
   type NoteVersion,
   type PageRow,
   type Snapshot,
@@ -123,7 +124,55 @@ function removeOrphans(): void {
   run(
     `DELETE FROM calendar_remote_events WHERE account_id NOT IN (SELECT id FROM calendar_accounts)`,
   );
-  run(`DELETE FROM note_versions WHERE widget_id NOT IN (SELECT id FROM widgets)`);
+  // History outlives its note (see listClosedNotes), but only for the latest few.
+  run(
+    `DELETE FROM note_versions WHERE widget_id NOT IN (SELECT id FROM widgets)
+       AND widget_id NOT IN (
+         SELECT widget_id FROM note_versions WHERE widget_id NOT IN (SELECT id FROM widgets)
+         GROUP BY widget_id ORDER BY MAX(updated_at) DESC LIMIT ?)`,
+    [CLOSED_NOTES_KEEP],
+  );
+}
+
+/** Closed notes used to take their history with them (ON DELETE CASCADE).
+ *  SQLite can't drop a foreign key, so rebuild the table without it. Also
+ *  saves the text of notes written before history existed, so a note closed
+ *  before its next edit can still be brought back. */
+function migrateNoteVersions(): void {
+  const sql = get(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'note_versions'`);
+  if (String(sql?.sql ?? "").includes("REFERENCES")) {
+    db.exec(`
+      CREATE TABLE note_versions_new (
+        id TEXT PRIMARY KEY, widget_id TEXT NOT NULL,
+        text TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+      );
+      INSERT INTO note_versions_new SELECT id, widget_id, text, created_at, updated_at FROM note_versions;
+      DROP TABLE note_versions;
+      ALTER TABLE note_versions_new RENAME TO note_versions;
+      CREATE INDEX IF NOT EXISTS idx_note_versions_widget ON note_versions(widget_id, updated_at);
+    `);
+    scheduleSave();
+  }
+  for (const w of all(`SELECT id, settings FROM widgets WHERE kind = 'blank'`)) {
+    let note: string;
+    try {
+      note = String((JSON.parse(String(w.settings)) as WidgetSettings).note ?? "");
+    } catch {
+      continue;
+    }
+    if (!note.trim()) continue;
+    const head = get(
+      `SELECT text FROM note_versions WHERE widget_id = ?
+       ORDER BY updated_at DESC, created_at DESC LIMIT 1`,
+      [String(w.id)],
+    );
+    if (head && String(head.text) === note) continue;
+    const now = Date.now();
+    run(
+      `INSERT INTO note_versions (id, widget_id, text, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+      [randomUUID(), String(w.id), note, now, now],
+    );
+  }
 }
 
 function scheduleSave(): void {
@@ -250,8 +299,7 @@ CREATE TABLE IF NOT EXISTS transcripts (
 );
 
 CREATE TABLE IF NOT EXISTS note_versions (
-  id TEXT PRIMARY KEY,
-  widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY, widget_id TEXT NOT NULL,
   text TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_note_versions_widget ON note_versions(widget_id, updated_at);
@@ -599,6 +647,7 @@ export async function initDb(dbPath: string): Promise<void> {
   // database that's after migrate() runs, not as part of SCHEMA itself.
   db.run(`CREATE INDEX IF NOT EXISTS idx_widgets_page ON widgets(page_id)`);
   ensurePageColors();
+  migrateNoteVersions();
   removeOrphans();
   carryOver();
   flush();
@@ -796,6 +845,8 @@ const NOTE_PAUSE = 5 * 60_000;
 /** …but a long session still gets a version every so often. */
 const NOTE_SPAN = 30 * 60_000;
 const NOTE_KEEP = 100;
+/** How many closed notes keep their history. */
+const CLOSED_NOTES_KEEP = 50;
 
 function recordNoteVersion(widgetId: string, before: string, after: string, checkpoint: boolean) {
   if (before === after) return;
@@ -855,13 +906,68 @@ export function listNoteVersions(widgetId: string): NoteVersion[] {
   }));
 }
 
-/** Puts an old version back as the note's text (itself a new version, so it can be undone). */
+/** Notes whose widget was closed, newest first, each with the last text it had. */
+export function listClosedNotes(): ClosedNote[] {
+  return all(
+    `SELECT v.* , (SELECT COUNT(*) FROM note_versions c WHERE c.widget_id = v.widget_id) AS versions
+     FROM note_versions v
+     WHERE v.widget_id NOT IN (SELECT id FROM widgets) AND TRIM(v.text) <> ''
+       AND v.updated_at = (SELECT MAX(updated_at) FROM note_versions o
+                           WHERE o.widget_id = v.widget_id AND TRIM(o.text) <> '')
+     GROUP BY v.widget_id
+     ORDER BY v.updated_at DESC`,
+  ).map((r) => ({
+    id: String(r.id),
+    widgetId: String(r.widget_id),
+    text: String(r.text),
+    createdAt: Number(r.created_at),
+    updatedAt: Number(r.updated_at),
+    versions: Number(r.versions),
+  }));
+}
+
+/**
+ * Puts an old version back as the note's text (itself a new version, so it
+ * can be undone). The version may also be a closed note's: an empty note then
+ * takes over that note's whole history, any other gets its text as a restore.
+ */
 export function restoreNoteVersion(widgetId: string, versionId: string): void {
-  const v = get(`SELECT text FROM note_versions WHERE id = ? AND widget_id = ?`, [
-    versionId,
-    widgetId,
-  ]);
-  if (v) updateWidgetSettings(widgetId, { note: String(v.text) }, { checkpoint: true });
+  const v = get(
+    `SELECT widget_id, text FROM note_versions WHERE id = ?
+       AND (widget_id = ? OR widget_id NOT IN (SELECT id FROM widgets))`,
+    [versionId, widgetId],
+  );
+  if (!v) return;
+  const from = String(v.widget_id);
+  const row = get(`SELECT settings FROM widgets WHERE id = ? AND kind = 'blank'`, [widgetId]);
+  if (!row) return;
+  let settings: WidgetSettings = {};
+  try {
+    settings = JSON.parse(String(row.settings)) as WidgetSettings;
+  } catch {
+    /* keep {} */
+  }
+  if (from !== widgetId && !String(settings.note ?? "").trim()) {
+    run(`UPDATE note_versions SET widget_id = ? WHERE widget_id = ?`, [widgetId, from]);
+    // the newest version must be the note's text, or the next edit records it twice
+    const head = get(
+      `SELECT text FROM note_versions WHERE widget_id = ?
+       ORDER BY updated_at DESC, created_at DESC LIMIT 1`,
+      [widgetId],
+    );
+    if (String(head?.text) !== String(v.text)) {
+      const now = Date.now();
+      run(
+        `INSERT INTO note_versions (id, widget_id, text, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+        [randomUUID(), widgetId, String(v.text), now, now],
+      );
+    }
+    patch("widgets", widgetId, [
+      ["settings", JSON.stringify({ ...settings, note: String(v.text) })],
+    ]);
+    return;
+  }
+  updateWidgetSettings(widgetId, { note: String(v.text) }, { checkpoint: true });
 }
 
 export function deleteWidget(id: string): void {
