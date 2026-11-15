@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "myPA",
     short_name: "myPA",
-    description: "A free Windows app for your tasks, calendar, email and notes, with an AI assistant on your own PC.",
+    description: "A personal assistant that runs on your own computer. Free for Windows.",
     start_url: "/",
     display: "browser",
     background_color: "#f2f2f2",

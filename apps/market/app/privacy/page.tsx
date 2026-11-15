@@ -18,7 +18,8 @@ export default function Privacy() {
         <div className="wrap">
           <h1 className="p-h1">Privacy policy</h1>
           <p className="page-head__lead">
-            The short version: the myPA app keeps your data on your computer and sends nothing to us.
+            myPA is a personal assistant that runs on your own computer. Your data stays there, and
+            the app sends nothing to us.
             The website stores only what publishers and buyers need.
           </p>
         </div>

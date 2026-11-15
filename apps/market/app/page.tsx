@@ -31,10 +31,10 @@ import { JsonLd, pageMeta, siteLd, softwareLd } from "@/lib/seo";
 export const revalidate = 3600;
 
 export const metadata: Metadata = pageMeta({
-  title: "myPA: free planner, to-do list and AI assistant for Windows",
+  title: "myPA: a personal assistant that runs on your own computer",
   absoluteTitle: true,
   description:
-    "myPA is a free Windows app that puts your to-do list, calendar, email and notes on one board, with an AI assistant that runs on your own PC. No account needed.",
+    "myPA is a free personal assistant for Windows. Your to-do list, calendar, email and notes on one board, with an AI that runs on your own PC. No account needed.",
   path: "/",
 });
 
@@ -49,12 +49,12 @@ export default async function Home() {
         <div className="wrap p-hero__grid">
           <div className="p-hero__text">
             <h1 id="hero-h" className="p-h1">
-              <Rise text="Your tasks, calendar and inbox on one screen" />
+              <Rise text="A personal assistant that runs on your own computer" />
             </h1>
             <p className="p-hero__lead" data-enter-up>
-              myPA is a free Windows app for people with too many tabs open. Put your to-do list,
-              calendar, email and notes side by side, and let the built-in assistant plan your day
-              around your meetings.
+              myPA puts your to-do list, calendar, email and notes on one board, and its built-in AI
+              plans your day around your meetings. Your notes and plans stay on your PC, and nothing
+              is sent to us.
             </p>
             <div className="p-hero__ctas" data-enter-up>
               <Link href="/download" className="btn btn--primary btn--lg">
@@ -65,7 +65,7 @@ export default async function Home() {
               </Link>
             </div>
             <p className="p-hero__note" data-enter-up>
-              Free and open source, for Windows 10 and 11. No account needed.
+              Free and open source, for Windows 10 and 11. No account to make.
             </p>
           </div>
           <div className="p-hero__art" data-enter-media>
@@ -299,7 +299,7 @@ export default async function Home() {
       <section className="p-sec p-close" aria-labelledby="close-h">
         <div className="wrap">
           <h2 id="close-h" className="p-h2 p-close__h">
-            Get your week onto one board
+            Your assistant, on your computer
           </h2>
           <p className="muted p-close__line">
             Free for Windows 10 and 11{size ? `. A ${size} download that` : ", and it"} installs in

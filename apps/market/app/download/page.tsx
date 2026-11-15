@@ -28,8 +28,9 @@ export default async function DownloadPage() {
               Download myPA for Windows
             </h1>
             <p className="page-head__lead">
-              Version {rel.version}, released {releaseDate(rel.date)}. Free, for 64-bit Windows 10 and
-              11{size ? `, a ${size} download` : ""}.
+              A personal assistant that runs on your own computer. Free for 64-bit Windows 10 and
+              11{size ? `, a ${size} download` : ""}. Version {rel.version}, released{" "}
+              {releaseDate(rel.date)}.
             </p>
             <div className="p-hero__ctas">
               <a href={rel.installer} className="btn btn--primary btn--lg">

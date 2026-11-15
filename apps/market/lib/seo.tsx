@@ -51,7 +51,7 @@ export function softwareLd(rel: Release) {
     "@type": "SoftwareApplication",
     name: "myPA",
     description:
-      "A free Windows app that puts your to-do list, calendar, email and notes on one board, with an AI assistant that runs on your own computer.",
+      "A personal assistant that runs on your own computer: your to-do list, calendar, email and notes on one board, with an AI that works offline. Free for Windows.",
     url: SITE_URL,
     applicationCategory: "ProductivityApplication",
     operatingSystem: "Windows 10, Windows 11",

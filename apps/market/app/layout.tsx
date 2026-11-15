@@ -11,11 +11,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   applicationName: "myPA",
   title: {
-    default: "myPA: free planner, to-do list and AI assistant for Windows",
+    default: "myPA: a personal assistant that runs on your own computer",
     template: "%s · myPA",
   },
   description:
-    "myPA is a free Windows app that puts your to-do list, calendar, email and notes on one board, with an AI assistant that runs on your own PC. No account needed.",
+    "myPA is a free personal assistant for Windows. Your to-do list, calendar, email and notes on one board, with an AI that runs on your own PC. No account needed.",
   keywords: [
     "personal assistant app",
     "Windows planner app",

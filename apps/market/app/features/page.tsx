@@ -34,8 +34,9 @@ export default function Features() {
             </h1>
           </div>
           <p className="page-head__lead f-hero__lead">
-            {BUILT_IN_COUNT} widgets come built in. Put them on as many pages as you like, size them to
-            fit, and ask the Assistant to use any of them for you.
+            Everything your assistant can do, running on your own computer. {BUILT_IN_COUNT} widgets
+            come built in: put them on as many pages as you like, size them to fit, and ask the
+            assistant to use any of them for you.
           </p>
           <nav className="f-jump" aria-label="Areas">
             {AREAS.map((a) => (

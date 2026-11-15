@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { ImageResponse } from "next/og";
 
-export const alt = "myPA: your tasks, calendar and inbox on one screen. Free for Windows.";
+export const alt = "myPA: a personal assistant that runs on your own computer. Free for Windows.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -90,8 +90,8 @@ export default async function Image() {
             </div>
             myPA
           </div>
-          <div style={{ display: "flex", fontSize: 64, fontWeight: 500, lineHeight: 1.05, letterSpacing: -2.5 }}>
-            Your tasks, calendar and inbox on one screen
+          <div style={{ display: "flex", fontSize: 60, fontWeight: 500, lineHeight: 1.06, letterSpacing: -2.4 }}>
+            A personal assistant that runs on your own computer
           </div>
           <div style={{ display: "flex", fontSize: 24, color: "#555", fontWeight: 500 }}>
             Free for Windows 10 and 11 · my-pa.xyz
