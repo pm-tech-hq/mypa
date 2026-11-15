@@ -1,0 +1,65 @@
+import {
+  Baby,
+  Briefcase,
+  Car,
+  Coffee,
+  Dumbbell,
+  Fuel,
+  Gift,
+  GraduationCap,
+  HeartPulse,
+  House,
+  Landmark,
+  PawPrint,
+  PiggyBank,
+  Plane,
+  Receipt,
+  Repeat,
+  Shirt,
+  ShoppingBag,
+  ShoppingCart,
+  Smartphone,
+  Tag,
+  Ticket,
+  Utensils,
+  Wifi,
+  Wrench,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
+
+/** The icons a category can wear, by the key stored in the database. */
+export const EXPENSE_ICONS: Record<string, LucideIcon> = {
+  cart: ShoppingCart,
+  utensils: Utensils,
+  coffee: Coffee,
+  car: Car,
+  fuel: Fuel,
+  plane: Plane,
+  house: House,
+  zap: Zap,
+  wifi: Wifi,
+  phone: Smartphone,
+  repeat: Repeat,
+  bag: ShoppingBag,
+  shirt: Shirt,
+  gift: Gift,
+  heart: HeartPulse,
+  gym: Dumbbell,
+  ticket: Ticket,
+  school: GraduationCap,
+  baby: Baby,
+  pet: PawPrint,
+  work: Briefcase,
+  tools: Wrench,
+  bank: Landmark,
+  savings: PiggyBank,
+  receipt: Receipt,
+  tag: Tag,
+};
+
+export const EXPENSE_ICON_KEYS = Object.keys(EXPENSE_ICONS);
+
+export function expenseIcon(key: string | undefined): LucideIcon {
+  return (key && EXPENSE_ICONS[key]) || Tag;
+}

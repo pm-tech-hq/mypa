@@ -1,7 +1,18 @@
 import { useEffect, useId, useState, type ReactNode } from "react";
 
-import type { AppPrefs, SystemState, UpdateStatus } from "../../../shared/system";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
+import type {
+  AppPrefs,
+  SystemState,
+  UpdateStatus,
+} from "../../../shared/system";
+import { useStore } from "../lib/store";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
 import { Switch } from "./ui/switch";
 import "../styles/settings.css";
 
@@ -41,8 +52,12 @@ export function AppSettings({
       <DialogContent className="app-set sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
-          <DialogDescription>How myPA starts, runs and keeps itself up to date.</DialogDescription>
+          <DialogDescription>
+            Your name, and how myPA starts, runs and keeps itself up to date.
+          </DialogDescription>
         </DialogHeader>
+
+        <YouSection onShowGuide={() => onOpenChange(false)} />
 
         <section className="app-set__section">
           <h3>Startup</h3>
@@ -95,17 +110,22 @@ export function AppSettings({
               className="app-set__button"
               disabled={!prefs.notifications || !state.notificationsSupported}
               onClick={() =>
-                void system.testNotification().then((ok) => setTested(ok ? "sent" : "off"))
+                void system
+                  .testNotification()
+                  .then((ok) => setTested(ok ? "sent" : "off"))
               }
             >
               Send a test
             </button>
             {tested === "sent" && (
               <span className="app-set__note">
-                Sent. If nothing appeared, check Windows notification settings and Do Not Disturb.
+                Sent. If nothing appeared, check Windows notification settings
+                and Do Not Disturb.
               </span>
             )}
-            {tested === "off" && <span className="app-set__note">Notifications are off.</span>}
+            {tested === "off" && (
+              <span className="app-set__note">Notifications are off.</span>
+            )}
           </div>
         </section>
 
@@ -122,6 +142,60 @@ export function AppSettings({
         </section>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** The name myPA greets you by, and the welcome guide. */
+function YouSection({ onShowGuide }: { onShowGuide: () => void }) {
+  const { snapshot, actions } = useStore();
+  const saved = snapshot?.meta.profile.name ?? "";
+  const [name, setName] = useState(saved);
+  const id = useId();
+  useEffect(() => setName(saved), [saved]);
+  if (!snapshot || !actions) return null;
+  const commit = () => {
+    if (name.trim() !== saved) void actions.setUserName(name);
+  };
+  return (
+    <section className="app-set__section">
+      <h3>You</h3>
+      <div className="app-set__field">
+        <label htmlFor={id}>
+          <strong>Your name</strong>
+          <em>
+            The Daily Briefing greets you by it, and the Assistant knows it.
+          </em>
+        </label>
+        <input
+          id={id}
+          className="field"
+          value={name}
+          maxLength={40}
+          placeholder="Optional"
+          onChange={(e) => setName(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) =>
+            e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()
+          }
+        />
+      </div>
+      <div className="app-set__row">
+        <button
+          type="button"
+          className="app-set__button"
+          onClick={() => {
+            onShowGuide();
+            void actions.setOnboarding(true);
+          }}
+        >
+          Show the welcome guide
+        </button>
+        <span className="app-set__note">
+          Set up pages and connections again. Your existing pages stay as they
+          are.
+        </span>
+      </div>
+    </section>
   );
 }
 
@@ -181,7 +255,9 @@ function describeUpdate(update: UpdateStatus): string {
     case "checking":
       return "Checking for updates…";
     case "none":
-      return `Up to date. Checked at ${new Date(update.checkedAt).toLocaleTimeString([], {
+      return `Up to date. Checked at ${new Date(
+        update.checkedAt,
+      ).toLocaleTimeString([], {
         hour: "numeric",
         minute: "2-digit",
       })}.`;
@@ -216,7 +292,12 @@ function Toggle({
         <strong>{label}</strong>
         <em>{hint}</em>
       </label>
-      <Switch id={id} checked={checked} disabled={disabled} onCheckedChange={onChange} />
+      <Switch
+        id={id}
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={onChange}
+      />
     </div>
   );
 }

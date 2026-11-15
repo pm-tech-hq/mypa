@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Archive, ChevronRight, Flag, X } from "lucide-react";
 
@@ -51,8 +51,7 @@ export function GoalsView({ undo }: { undo: Undo }) {
     })).filter((grp) => grp.goals.length > 0);
   }, [live]);
 
-  const addGoal = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== "Enter") return;
+  const addGoal = () => {
     const title = newTitle.trim();
     if (!title) return;
     setNewTitle("");
@@ -72,7 +71,7 @@ export function GoalsView({ undo }: { undo: Undo }) {
 
   return (
     <div className="todo__scroll goals">
-      <AddRow value={newTitle} placeholder="Add a goal" onChange={setNewTitle} onKeyDown={addGoal}>
+      <AddRow value={newTitle} placeholder="Add a goal" onChange={setNewTitle} onSubmit={addGoal}>
         <select
           className="field goals__horizon"
           aria-label="Timeline for the new goal"
@@ -183,8 +182,7 @@ function GoalCard({ goal, tasks, expanded, onExpand, onDelete, onDeleteTask }: C
   const complete = goal.status === "done";
   const update = (patch: Partial<GoalRow>) => void actions.updateGoal(goal.id, patch);
 
-  const addTask = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== "Enter") return;
+  const addTask = () => {
     const title = draft.trim();
     if (!title) return;
     setDraft("");
@@ -332,7 +330,7 @@ function GoalCard({ goal, tasks, expanded, onExpand, onDelete, onDeleteTask }: C
             value={draft}
             placeholder="Break into a task"
             onChange={setDraft}
-            onKeyDown={addTask}
+            onSubmit={addTask}
           />
 
           <div className="goal__actions">

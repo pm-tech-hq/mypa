@@ -347,6 +347,118 @@
   color: var(--ds-accent-ink);
 }
 
+/* ---- built-in model setup -------------------------------------------------------- */
+.asst-setup {
+  margin: auto 0;
+  padding: 8px 4px;
+}
+
+.asst-setup__model {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-muted);
+}
+
+.asst-setup__model .field {
+  flex: 1 1 auto;
+  width: auto;
+  font-size: var(--ds-text-xs);
+}
+
+.asst-setup__note {
+  margin: 6px 0 0;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+}
+
+.asst-setup__progress {
+  margin-top: 14px;
+}
+
+.asst-setup__bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--ds-sunken);
+  overflow: hidden;
+}
+
+.asst-setup__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ds-accent);
+  transition: width 200ms linear;
+}
+
+.asst-setup__meta {
+  margin: 6px 0 0;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+}
+
+.asst-setup__error {
+  margin: 10px 0 0;
+  color: var(--ds-danger);
+  font-size: var(--ds-text-xs);
+  line-height: 1.5;
+}
+
+.asst-setup__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.asst-setup__actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  appearance: none;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+  color: var(--ds-fg-2);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+}
+
+.asst-setup__actions button:hover:not(:disabled) {
+  border-color: var(--ds-fg);
+  color: var(--ds-fg);
+}
+
+.asst-setup__actions button:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.asst-setup__actions button.is-primary {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent);
+  color: var(--ds-accent-fg);
+}
+
+.asst-setup__actions button.is-primary:hover {
+  background: var(--ds-accent-hover);
+  color: var(--ds-accent-fg);
+}
+
+.asst-setup__actions .asst-setup__link {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ds-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ---- error ---------------------------------------------------------------------- */
 .asst__error {
   display: flex;

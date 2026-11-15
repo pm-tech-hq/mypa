@@ -29,7 +29,19 @@ const builtinBundles = import.meta.glob("../../../resources/registry/bundles/*.m
 
 export const BUILTIN_REGISTRY = "builtin:official";
 /** The hosted marketplace (apps/market). Always listed; can't be removed. */
-export const MARKETPLACE_REGISTRY = "https://mypa-market.vercel.app/registry.json";
+export const MARKETPLACE_REGISTRY = "https://my-pa.xyz/registry.json";
+/** Other addresses of the marketplace. Widgets installed from it may carry
+ *  one of these, so they're read as the marketplace. */
+const LEGACY_MARKETPLACE_REGISTRIES = new Set([
+  "https://mypa-market.vercel.app/registry.json",
+  "https://www.my-pa.xyz/registry.json",
+]);
+
+/** The marketplace under its current URL; any other registry unchanged. */
+export function canonicalRegistry(url: string): string {
+  return LEGACY_MARKETPLACE_REGISTRIES.has(url) ? MARKETPLACE_REGISTRY : url;
+}
+
 const USER_REGISTRIES_KEY = "widgetRegistries";
 const FETCH_TIMEOUT_MS = 15_000;
 
@@ -128,9 +140,11 @@ function trustFor(publisher: RegistryPublisher | undefined, rootSigned: boolean)
 async function loadAll(force: boolean): Promise<LoadedRegistry[]> {
   if (!force && cache && Date.now() - cache.at < CACHE_MS) return cache.loaded;
   const loaded = await Promise.all(
-    [BUILTIN_REGISTRY, MARKETPLACE_REGISTRY, ...userRegistries().filter((u) => u !== MARKETPLACE_REGISTRY)].map(
-      loadOne,
-    ),
+    [
+      BUILTIN_REGISTRY,
+      MARKETPLACE_REGISTRY,
+      ...userRegistries().filter((u) => canonicalRegistry(u) !== MARKETPLACE_REGISTRY),
+    ].map(loadOne),
   );
   cache = { at: Date.now(), loaded };
   return loaded;
@@ -190,9 +204,8 @@ export async function findCatalogWidget(
   registryUrl?: string | null,
 ): Promise<CatalogWidget | null> {
   if (!registryUrl) return (await getCatalog()).widgets.find((w) => w.entry.manifest.id === id) ?? null;
-  return (
-    candidates(await loadAll(false)).find((w) => w.entry.manifest.id === id && w.registryUrl === registryUrl) ?? null
-  );
+  const want = canonicalRegistry(registryUrl);
+  return candidates(await loadAll(false)).find((w) => w.entry.manifest.id === id && w.registryUrl === want) ?? null;
 }
 
 /** Downloads a bundle and checks it against the signed index's hash and manifest. */

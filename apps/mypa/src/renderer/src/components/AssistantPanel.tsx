@@ -20,8 +20,11 @@ import type {
   AssistantEvent,
   AssistantModelInfo,
   AssistantTurn,
+  LocalModelStatus,
 } from "../../../shared/assistant";
+import { onAskAssistant } from "../lib/askAssistant";
 import { AssistantSettingsView } from "./AssistantSettings";
+import { AssistantSetup } from "./AssistantSetup";
 import { Markdown } from "./Markdown";
 import "../styles/assistant.css";
 
@@ -68,6 +71,8 @@ export function AssistantPanel({
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<"chat" | "settings">("chat");
   const [model, setModel] = useState<AssistantModelInfo | null>(null);
+  /** The built-in model's download, when that's what answers. */
+  const [setup, setSetup] = useState<LocalModelStatus | null>(null);
   const requestRef = useRef<string | null>(null);
   const replyRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -75,8 +80,21 @@ export function AssistantPanel({
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const refreshModel = useCallback(() => {
-    void window.mypa.assistant.modelInfo().then(setModel);
+    void window.mypa.assistant.modelInfo().then(async (info) => {
+      setModel(info);
+      setSetup(info.local ? await window.mypa.assistant.modelStatus(info.local) : null);
+    });
   }, []);
+
+  useEffect(
+    () =>
+      window.mypa.assistant.onModelStatus((s) =>
+        setSetup((prev) => (prev?.model === s.model ? s : prev)),
+      ),
+    [],
+  );
+
+  const needsSetup = setup !== null && setup.state !== "ready";
 
   useEffect(() => {
     if (!open) return;
@@ -139,7 +157,7 @@ export function AssistantPanel({
 
   const send = (text: string) => {
     const message = text.trim();
-    if (!message || busy) return;
+    if (!message || busy || needsSetup) return;
     setError(null);
     stickRef.current = true;
     const user: AssistantTurn = { id: uid(), role: "user", text: message, createdAt: Date.now() };
@@ -164,6 +182,13 @@ export function AssistantPanel({
       turns: history.map(turnForModel),
     });
   };
+
+  // a widget asked something (the Email widget's AI box): send it, or leave it ready if busy
+  const askRef = useRef((text: string) => send(text));
+  useEffect(() => {
+    askRef.current = (text: string) => (busy || needsSetup ? setInput(text) : send(text));
+  });
+  useEffect(() => onAskAssistant((text) => askRef.current(text)), []);
 
   const stop = () => {
     if (!requestRef.current) return;
@@ -277,7 +302,16 @@ export function AssistantPanel({
               stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
             }}
           >
-            {turns.length === 0 && (
+            {needsSetup && setup && (
+              <AssistantSetup
+                status={setup}
+                onModelChange={(id) =>
+                  void window.mypa.tutor.setLocalModel(id).then(() => refreshModel())
+                }
+                onUseProvider={() => setView("settings")}
+              />
+            )}
+            {turns.length === 0 && !needsSetup && (
               <div className="asst__empty">
                 <p className="asst__empty-title">What can I do for you?</p>
                 <p className="asst__empty-text">
@@ -364,7 +398,10 @@ export function AssistantPanel({
               ref={inputRef}
               rows={1}
               value={input}
-              placeholder="Ask, or tell me what to do…"
+              disabled={needsSetup}
+              placeholder={
+                needsSetup ? "Download the model above to start" : "Ask, or tell me what to do…"
+              }
               aria-label="Message the assistant"
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -390,7 +427,7 @@ export function AssistantPanel({
                 className="asst__send"
                 aria-label="Send"
                 title="Send (Enter)"
-                disabled={!input.trim()}
+                disabled={!input.trim() || needsSetup}
               >
                 <ArrowUp size={15} />
               </button>

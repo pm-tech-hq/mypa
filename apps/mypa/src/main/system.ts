@@ -5,10 +5,15 @@
  * launches at sign-in is read back from the OS, so turning it off in Task
  * Manager shows up here too.
  */
+import { execFile } from "node:child_process";
+
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, Notification, Tray } from "electron";
 
 import { DEFAULT_PREFS, SYSTEM_IPC, type AppPrefs, type SystemState } from "../shared/system";
+import { hotkeyLabel } from "../shared/capture";
+import { toggleCapture } from "./capture";
 import * as db from "./db";
+import { mainWindow } from "./windows";
 import { checkForUpdates, initUpdater, installUpdate, setAutomatic, updateStatus } from "./updater";
 
 /** Passed on the command line by the sign-in entry, so we know how we started. */
@@ -51,7 +56,7 @@ function broadcast(): void {
 
 /** Shows the main window, creating it if it was never made or was destroyed. */
 export function showMainWindow(): void {
-  const win = BrowserWindow.getAllWindows()[0] ?? openWindow();
+  const win = mainWindow() ?? openWindow();
   if (win.isMinimized()) win.restore();
   if (win.webContents.isLoading()) win.once("ready-to-show", () => (win.show(), win.focus()));
   else {
@@ -106,6 +111,12 @@ function refreshTray(): void {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: "Open myPA", click: showMainWindow },
+      {
+        label: "Quick capture",
+        accelerator: db.captureSettings().hotkeyOn ? db.captureSettings().hotkey : undefined,
+        registerAccelerator: false,
+        click: toggleCapture,
+      },
       { type: "separator" },
       update.state === "ready"
         ? { label: `Restart to update to ${update.version}`, click: restartToUpdate }
@@ -122,26 +133,130 @@ function refreshTray(): void {
 
 /* ----------------------------------------------------------- notifications --- */
 
-/** Shows a desktop notification; clicking it brings myPA forward. Returns
- *  false when notifications are switched off or unsupported. */
-export function notify(input: { title: string; body: string; subtitle?: string }): boolean {
+/** Shows a desktop notification; clicking it brings myPA forward (then runs
+ *  `onClick`). Returns false when notifications are switched off or unsupported. */
+export interface NotifyAction {
+  label: string;
+  /** A mypa:// link the OS opens when the button is pressed (Windows). */
+  url: string;
+}
+
+const xmlEscape = (v: string) =>
+  v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/** A Windows toast with buttons. Buttons and the toast itself open mypa://
+ *  links, which reach the running app through the single-instance handoff. */
+function toastXml(input: {
+  title: string;
+  body: string;
+  subtitle?: string;
+  launchUrl: string;
+  actions: NotifyAction[];
+  persistent?: boolean;
+}): string {
+  const lines = [input.title, input.body, input.subtitle].filter(Boolean) as string[];
+  return [
+    `<toast launch="${xmlEscape(input.launchUrl)}" activationType="protocol"${input.persistent ? ' scenario="reminder"' : ""}>`,
+    `<visual><binding template="ToastGeneric">`,
+    ...lines.map((l) => `<text>${xmlEscape(l)}</text>`),
+    `</binding></visual>`,
+    `<actions>`,
+    ...input.actions.map(
+      (a) =>
+        `<action content="${xmlEscape(a.label)}" arguments="${xmlEscape(a.url)}" activationType="protocol"/>`,
+    ),
+    `</actions>`,
+    `<audio src="ms-winsoundevent:Notification.Reminder"/>`,
+    `</toast>`,
+  ].join("");
+}
+
+/** Shows a desktop notification; clicking it brings myPA forward (then runs
+ *  `onClick`). On Windows, `actions` adds buttons and `launchUrl` replaces the
+ *  click with a mypa:// link; `persistent` keeps it on screen until answered.
+ *  Returns false when notifications are switched off or unsupported. */
+export function notify(input: {
+  title: string;
+  body: string;
+  subtitle?: string;
+  onClick?: () => void;
+  actions?: NotifyAction[];
+  launchUrl?: string;
+  persistent?: boolean;
+  /** Gets the shown notification, e.g. to close it once it no longer applies. */
+  onShown?: (n: Notification) => void;
+}): boolean {
   if (!prefs.notifications || !Notification.isSupported()) return false;
-  const n = new Notification({
-    title: input.title,
-    body: input.body,
-    subtitle: input.subtitle,
-    icon: trayIcon || undefined,
-  });
-  live.add(n);
-  const release = () => live.delete(n);
-  n.on("click", () => {
-    release();
-    showMainWindow();
-  });
-  n.on("close", release);
-  n.on("failed", release);
-  n.show();
+  const plain = () => {
+    const n = new Notification({
+      title: input.title,
+      body: input.body,
+      subtitle: input.subtitle,
+      icon: trayIcon || undefined,
+    });
+    live.add(n);
+    const release = () => live.delete(n);
+    n.on("click", () => {
+      release();
+      showMainWindow();
+      input.onClick?.();
+    });
+    n.on("close", release);
+    n.on("failed", release);
+    n.show();
+    input.onShown?.(n);
+  };
+  if (process.platform === "win32" && input.actions?.length && input.launchUrl) {
+    const n = new Notification({
+      toastXml: toastXml({
+        title: input.title,
+        body: input.body,
+        subtitle: input.subtitle,
+        launchUrl: input.launchUrl,
+        actions: input.actions,
+        persistent: input.persistent,
+      }),
+    });
+    live.add(n);
+    const release = () => live.delete(n);
+    n.on("close", release);
+    // a toast the OS rejects falls back to the plain kind
+    n.on("failed", () => {
+      release();
+      plain();
+    });
+    n.show();
+    input.onShown?.(n);
+    return true;
+  }
+  plain();
   return true;
+}
+
+/**
+ * Takes this app's Windows toasts whose launch link contains one of `needles`
+ * off the screen and out of the notification centre. Electron's close() can't
+ * remove a custom (toastXml) toast, and toasts from before a restart have no
+ * handle at all, so this goes through the toast history instead.
+ */
+export function removeToasts(needles: string[]): void {
+  if (process.platform !== "win32" || !needles.length) return;
+  const q = (s: string) => `'${s.replace(/'/g, "''")}'`;
+  const appId = app.isPackaged ? "com.mypa.desktop" : process.execPath;
+  const script = [
+    "$ErrorActionPreference='SilentlyContinue'",
+    "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null",
+    "$h=[Windows.UI.Notifications.ToastNotificationManager]::History",
+    `$app=${q(appId)}`,
+    `$n=@(${needles.map(q).join(",")})`,
+    "foreach($t in $h.GetHistory($app)){$x=$t.Content.GetXml();foreach($s in $n){if($x.Contains($s)){$h.Remove($t.Tag,$t.Group,$app);break}}}",
+  ].join(";");
+  execFile(
+    "powershell.exe",
+    ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script],
+    { windowsHide: true, timeout: 20_000 },
+    () => {},
+  );
 }
 
 /* ----------------------------------------------------------------- updates --- */

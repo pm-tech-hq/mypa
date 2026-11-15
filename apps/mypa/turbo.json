@@ -3,10 +3,24 @@
   "tasks": {
     "build": {
       "outputs": ["out/**"],
-      "env": ["ELECTRON_RENDERER_URL", "MYPA_DEBUG_ASSISTANT"]
+      "env": [
+        "ELECTRON_RENDERER_URL",
+        "MYPA_DEBUG_ASSISTANT",
+        "MAIN_VITE_GOOGLE_CLIENT_ID",
+        "MAIN_VITE_GOOGLE_CLIENT_SECRET",
+        "MYPA_GOOGLE_TEST",
+        "MYPA_ZOHO_TEST",
+        "MYPA_OAUTH_HEADLESS"
+      ]
     },
     "dev": {
-      "env": ["ELECTRON_RENDERER_URL", "MYPA_DEBUG_ASSISTANT"]
+      "env": [
+        "ELECTRON_RENDERER_URL",
+        "MYPA_DEBUG_ASSISTANT",
+        "MYPA_GOOGLE_TEST",
+        "MYPA_ZOHO_TEST",
+        "MYPA_OAUTH_HEADLESS"
+      ]
     }
   }
 }

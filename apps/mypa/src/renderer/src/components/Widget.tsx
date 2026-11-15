@@ -1,4 +1,9 @@
-import { useCallback, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useCallback,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 import { Settings, X } from "lucide-react";
 
@@ -14,9 +19,25 @@ import { TrustBadge } from "./TrustBadge";
 import { TodoList } from "./TodoList";
 import { TranscribeWidget } from "./TranscribeWidget";
 import { TutorWidget } from "./TutorWidget";
+import { EmailWidget } from "./EmailWidget";
+import { ExpensesWidget } from "./ExpensesWidget";
+import { CaptureWidget } from "./CaptureWidget";
+import { ShoppingWidget } from "./ShoppingWidget";
+import { JournalWidget } from "./JournalWidget";
+import { ProjectsWidget } from "./ProjectsWidget";
+import { StudyWidget } from "./StudyWidget";
+import { BriefingWidget } from "./BriefingWidget";
+import { CalculatorWidget } from "./CalculatorWidget";
+import { TimerWidget } from "./TimerWidget";
+import { ConverterWidget } from "./ConverterWidget";
+import { MemoryWidget } from "./MemoryWidget";
+import { PlannerWidget } from "./PlannerWidget";
+import { RemindersWidget } from "./RemindersWidget";
 import { FlashcardsWidget } from "./FlashcardsWidget";
+import { MeetingWidget } from "./MeetingWidget";
 import { TypingWidget } from "./TypingWidget";
 import { WidgetSettings } from "./WidgetSettings";
+import { WidgetErrorBoundary } from "./WidgetErrorBoundary";
 
 interface WidgetProps {
   widget: WidgetRow;
@@ -48,10 +69,14 @@ export function Widget({
   const { snapshot } = useStore();
   const plugin =
     widget.kind === "custom"
-      ? (snapshot?.installedWidgets.find((w) => w.manifest.id === widget.settings.pluginId) ?? null)
+      ? (snapshot?.installedWidgets.find(
+          (w) => w.manifest.id === widget.settings.pluginId,
+        ) ?? null)
       : null;
   const title = widgetDisplayTitle(widget);
-  const KindIcon = plugin ? widgetIcon(plugin.manifest.icon) : widgetKindMeta(widget.kind).icon;
+  const KindIcon = plugin
+    ? widgetIcon(plugin.manifest.icon)
+    : widgetKindMeta(widget.kind).icon;
 
   const rectRef = useRef(rect);
   rectRef.current = rect;
@@ -108,6 +133,7 @@ export function Widget({
 
   return (
     <div
+      data-widget-id={widget.id}
       className={`widget${active ? " widget--active" : ""}${dragging ? " widget--dragging" : ""}`}
       style={{
         transform: `translate(${rect.x}px, ${rect.y}px)`,
@@ -127,7 +153,10 @@ export function Widget({
             </span>
           )}
         </span>
-        <div className="widget__bar-actions" onPointerDown={(e) => e.stopPropagation()}>
+        <div
+          className="widget__bar-actions"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
           <button
             type="button"
             className={`widget__icon${settingsOpen ? " widget__icon--on" : ""}`}
@@ -151,24 +180,96 @@ export function Widget({
       </div>
 
       <div className="widget__body widget__body--flush">
-        {widget.kind === "todo" && <TodoList widget={widget} />}
-        {widget.kind === "blank" && <BlankWidget widget={widget} />}
-        {widget.kind === "calendar" && (
-          <CalendarWidget widget={widget} onOpenSettings={() => setSettingsOpen(true)} />
-        )}
-        {widget.kind === "transcribe" && <TranscribeWidget widget={widget} />}
-        {widget.kind === "tutor" && <TutorWidget widget={widget} />}
-        {widget.kind === "typing" && <TypingWidget widget={widget} />}
-        {widget.kind === "flashcards" && <FlashcardsWidget widget={widget} />}
-        {widget.kind === "custom" && <CustomWidget widget={widget} />}
+        <WidgetErrorBoundary name={widget.kind}>
+          {widget.kind === "todo" && <TodoList widget={widget} />}
+          {widget.kind === "blank" && <BlankWidget widget={widget} />}
+          {widget.kind === "calendar" && (
+            <CalendarWidget
+              widget={widget}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          )}
+          {widget.kind === "transcribe" && <TranscribeWidget widget={widget} />}
+          {widget.kind === "tutor" && <TutorWidget widget={widget} />}
+          {widget.kind === "typing" && <TypingWidget widget={widget} />}
+          {widget.kind === "flashcards" && <FlashcardsWidget widget={widget} />}
+          {widget.kind === "meeting" && <MeetingWidget widget={widget} />}
+          {widget.kind === "expenses" && (
+            <ExpensesWidget
+              widget={widget}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          )}
+          {widget.kind === "projects" && <ProjectsWidget widget={widget} />}
+          {widget.kind === "study" && (
+            <StudyWidget
+              widget={widget}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          )}
+          {widget.kind === "calculator" && <CalculatorWidget widget={widget} />}
+          {widget.kind === "timer" && <TimerWidget widget={widget} />}
+          {widget.kind === "converter" && <ConverterWidget widget={widget} />}
+          {widget.kind === "memory" && <MemoryWidget widget={widget} />}
+          {widget.kind === "briefing" && (
+            <BriefingWidget
+              widget={widget}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          )}
+          {widget.kind === "journal" && (
+            <JournalWidget
+              widget={widget}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          )}
+          {widget.kind === "shopping" && (
+            <ShoppingWidget
+              widget={widget}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          )}
+          {widget.kind === "capture" && (
+            <CaptureWidget
+              widget={widget}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          )}
+          {widget.kind === "planner" && (
+            <PlannerWidget
+              widget={widget}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          )}
+          {widget.kind === "reminders" && (
+            <RemindersWidget
+              widget={widget}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          )}
+          {widget.kind === "email" && (
+            <EmailWidget
+              widget={widget}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          )}
+          {widget.kind === "custom" && <CustomWidget widget={widget} />}
+        </WidgetErrorBoundary>
 
         {settingsOpen && (
-          <WidgetSettings widget={widget} onClose={() => setSettingsOpen(false)} />
+          <WidgetSettings
+            widget={widget}
+            onClose={() => setSettingsOpen(false)}
+          />
         )}
       </div>
 
       {RESIZE_HANDLES.map((handle) => (
-        <span key={handle} className={`rz rz--${handle}`} onPointerDown={begin(handle)} />
+        <span
+          key={handle}
+          className={`rz rz--${handle}`}
+          onPointerDown={begin(handle)}
+        />
       ))}
     </div>
   );

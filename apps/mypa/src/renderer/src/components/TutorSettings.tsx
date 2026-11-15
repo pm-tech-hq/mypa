@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
-const PRESETS: { label: string; type: ProviderType; baseUrl: string; model: string }[] = [
+export const PRESETS: { label: string; type: ProviderType; baseUrl: string; model: string }[] = [
   {
     label: "Groq",
     type: "openai",

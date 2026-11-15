@@ -13,7 +13,14 @@ declare module "*?inline" {
   export default dataUrl;
 }
 
+interface ImportMetaEnv {
+  /** A Google "Desktop app" OAuth client built into this copy (apps/mypa/.env.local, never committed). */
+  readonly MAIN_VITE_GOOGLE_CLIENT_ID?: string;
+  readonly MAIN_VITE_GOOGLE_CLIENT_SECRET?: string;
+}
+
 interface ImportMeta {
+  readonly env: ImportMetaEnv;
   glob<T = unknown>(
     pattern: string,
     options: { query?: string; import?: string; eager: true },

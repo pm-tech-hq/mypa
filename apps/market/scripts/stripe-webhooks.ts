@@ -11,7 +11,7 @@ if (!key) {
   console.error("STRIPE_SECRET_KEY is not set. Install the Stripe integration and run `vercel env pull` first.");
   process.exit(1);
 }
-const site = process.argv[2] ?? "https://mypa-market.vercel.app";
+const site = process.argv[2] ?? "https://my-pa.xyz";
 const url = `${site}/api/stripe/webhook`;
 
 async function stripe(path: string, body?: URLSearchParams) {

@@ -13,6 +13,7 @@ import { ChevronDown, LayoutGrid, Package, Plus, Settings, Sparkles, Undo2 } fro
 
 import { AppSettings, useSystemState } from "./components/AppSettings";
 import { AssistantPanel } from "./components/AssistantPanel";
+import { Onboarding } from "./components/Onboarding";
 import { BrandMark } from "./components/BrandMark";
 import { Marketplace } from "./components/Marketplace";
 import { PageSidebar } from "./components/PageSidebar";
@@ -49,7 +50,12 @@ import {
 } from "./lib/widgets";
 import { WIDGET_KINDS } from "./lib/widgetKinds";
 import { updateFor, useCatalog, widgetIcon } from "./lib/market";
+import { onAskAssistant } from "./lib/askAssistant";
+import { wireRecorder } from "./lib/recorder";
 import { onOpenMarket, openMarket, type MarketTarget } from "./lib/marketBus";
+import { requestReminderFocus } from "./lib/reminderFocus";
+import { revealWidget } from "./lib/revealWidget";
+import { chime } from "./lib/chime";
 import { pageColorHex } from "../../shared/pageColors";
 import type { InstalledWidget, WidgetManifest } from "../../shared/widgetPlatform";
 import type { WidgetKind } from "../../shared/types";
@@ -88,7 +94,63 @@ export function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+  useEffect(() => onAskAssistant(() => setAssistantOpen(true)), []);
   const [marketTarget, setMarketTarget] = useState<MarketTarget>({ view: "discover" });
+
+  // The recorder hears from main from the start; a clicked "Record this
+  // meeting?" notification shows a page with the Meetings widget.
+  const snapshotRef = useRef(snapshot);
+  snapshotRef.current = snapshot;
+  useEffect(() => {
+    wireRecorder();
+    return window.mypa.meetings.onEvent((e) => {
+      const s = snapshotRef.current;
+      if (e.type !== "prompt" || !e.open || !s) return;
+      const meetings = s.widgets.filter((w) => w.kind === "meeting");
+      if (meetings.length && !meetings.some((w) => w.pageId === s.meta.currentPageId))
+        void actions.setCurrentPage(meetings[0]!.pageId);
+    });
+  }, [actions]);
+
+  // A timer ended: chime (unless turned off); its notification was clicked: show the widget.
+  useEffect(
+    () =>
+      window.mypa.db.onTimerFired((_id, clicked) => {
+        const s = snapshotRef.current;
+        if (!s) return;
+        if (clicked) void revealWidget("timer", s, actions.setCurrentPage);
+        else if (s.meta.timers.sound) chime();
+      }),
+    [actions],
+  );
+
+  // The morning briefing notification: show the Daily Briefing widget.
+  useEffect(
+    () =>
+      window.mypa.db.onBriefingFocus(() => {
+        const s = snapshotRef.current;
+        if (s) void revealWidget("briefing", s, actions.setCurrentPage);
+      }),
+    [actions],
+  );
+
+  // A clicked reminder notification: show a page with a Reminders widget
+  // (adding one to this page if there's none), then that reminder.
+  useEffect(
+    () =>
+      window.mypa.db.onReminderFocus((id) => {
+        const s = snapshotRef.current;
+        if (!s) return;
+        const current = s.meta.currentPageId ?? s.pages[0]?.id ?? null;
+        const widgets = s.widgets.filter((w) => w.kind === "reminders");
+        if (!widgets.some((w) => w.pageId === current)) {
+          if (widgets.length) void actions.setCurrentPage(widgets[0]!.pageId);
+          else if (current) void actions.createWidget("reminders", current);
+        }
+        requestReminderFocus(id);
+      }),
+    [actions],
+  );
 
   const { catalog } = useCatalog();
   const updateCount = useMemo(
@@ -432,6 +494,8 @@ export function App() {
       </Dialog>
 
       <AppSettings open={settingsOpen} onOpenChange={setSettingsOpen} state={system} />
+
+      {snapshot && <Onboarding board={ref} />}
 
       {snapshot && (
         <Marketplace

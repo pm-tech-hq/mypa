@@ -91,19 +91,39 @@ export async function download(
 
   const fh = await open(part, offset === 0 ? "w" : "r+");
   try {
+    // Each ranged chunk is streamed straight to the .part file, so progress
+    // moves smoothly and a pause stops within one network read. A dropped
+    // connection retries from the byte it reached.
+    let failures = 0;
     while (offset < total) {
       if (isCancelled()) throw new Error("cancelled");
       const end = Math.min(offset + CHUNK, total) - 1;
-      const buf = await withRetry(async () => {
+      try {
         const res = await fetch(url, { headers: { Range: `bytes=${offset}-${end}` } });
-        if (res.status !== 206) throw new Error(`Server did not honour a ranged request (${res.status})`);
-        const data = Buffer.from(await res.arrayBuffer());
-        if (data.length !== end - offset + 1) throw new Error("terminated");
-        return data;
-      });
-      await fh.write(buf, 0, buf.length, offset);
-      offset += buf.length;
-      onBytes(buf.length);
+        if (res.status !== 206 || !res.body) {
+          throw new Error(`Server did not honour a ranged request (${res.status})`);
+        }
+        const reader = res.body.getReader();
+        for (;;) {
+          if (isCancelled()) {
+            await reader.cancel().catch(() => undefined);
+            throw new Error("cancelled");
+          }
+          const { done, value } = await reader.read();
+          if (done) break;
+          const take = Math.min(value.length, end + 1 - offset);
+          if (take <= 0) break;
+          await fh.write(value, 0, take, offset);
+          offset += take;
+          onBytes(take);
+        }
+        if (offset <= end) throw new Error("terminated");
+        failures = 0;
+      } catch (err) {
+        if (isCancelled()) throw new Error("cancelled");
+        if (++failures >= RETRIES) throw err;
+        await sleep(Math.min(1000 * 2 ** (failures - 1), 15_000));
+      }
     }
   } finally {
     await fh.close();

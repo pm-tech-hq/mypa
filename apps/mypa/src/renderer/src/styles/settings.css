@@ -164,3 +164,28 @@
   box-shadow: 0 0 0 2px var(--ds-bg);
   pointer-events: none;
 }
+
+.app-set__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.app-set__field label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.app-set__field strong {
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-fg);
+}
+
+.app-set__field em {
+  font-style: normal;
+  font-size: var(--ds-text-2xs);
+  line-height: 1.45;
+  color: var(--ds-muted);
+}

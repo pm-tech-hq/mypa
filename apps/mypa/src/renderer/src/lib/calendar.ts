@@ -2,8 +2,10 @@
 
 import type {
   CalendarAccountRow,
+  CalendarAttendee,
   CalendarEventRow,
   CalendarRemoteEventRow,
+  CalendarRsvp,
 } from "../../../shared/types";
 
 export interface AgendaItem {
@@ -14,10 +16,33 @@ export interface AgendaItem {
   start: number;
   end: number;
   allDay: boolean;
-  /** "local" for events you added; otherwise the connected calendar's label. */
+  /** "local" for events you added; otherwise the connected calendar's name. */
   source: string;
   local: boolean;
   htmlLink: string | null;
+  /** null for events on this computer. */
+  accountId: string | null;
+  calendarId: string | null;
+  /** The calendar's colour (CSS). */
+  color: string;
+  meetingUrl: string | null;
+  attendees: CalendarAttendee[];
+  myStatus: CalendarRsvp | null;
+  organizer: string | null;
+  /** Can be changed and deleted from here. */
+  canEdit: boolean;
+  recurring: boolean;
+}
+
+/** Colour of events on this computer. */
+export const LOCAL_COLOR = "var(--ds-faint)";
+const ACCOUNT_HUES = [221, 152, 28, 280, 350, 190];
+
+/** An account's colour: its main calendar's, else one dealt by position. */
+export function accountColor(accounts: CalendarAccountRow[], id: string): string {
+  const i = Math.max(0, accounts.findIndex((a) => a.id === id));
+  const main = accounts[i]?.calendars.find((c) => c.primary) ?? accounts[i]?.calendars[0];
+  return main?.color ?? `hsl(${ACCOUNT_HUES[i % ACCOUNT_HUES.length]} 70% 48%)`;
 }
 
 /** Local events (always shown) + remote events from connected accounts only,
@@ -40,24 +65,60 @@ export function mergeEvents(
     source: "local",
     local: true,
     htmlLink: null,
+    accountId: null,
+    calendarId: null,
+    color: LOCAL_COLOR,
+    meetingUrl: null,
+    attendees: [],
+    myStatus: null,
+    organizer: null,
+    canEdit: true,
+    recurring: false,
   }));
 
   const remote: AgendaItem[] = remoteEvents
     .filter((e) => accountById.get(e.accountId)?.status === "connected")
-    .map((e) => ({
-      id: e.id,
-      title: e.title,
-      location: e.location,
-      notes: e.notes,
-      start: e.start,
-      end: e.end,
-      allDay: e.allDay,
-      source: accountById.get(e.accountId)?.label ?? "calendar",
-      local: false,
-      htmlLink: e.htmlLink,
-    }));
+    .flatMap((e) => {
+      const account = accountById.get(e.accountId)!;
+      const cal = account.calendars.find((c) => c.id === e.calendarId);
+      if (cal?.hidden) return [];
+      const shown = account.calendars.filter((c) => !c.hidden).length;
+      return [
+        {
+          id: e.id,
+          title: e.title,
+          location: e.location,
+          notes: e.notes,
+          start: e.start,
+          end: e.end,
+          allDay: e.allDay,
+          source: shown > 1 && cal ? `${account.label} · ${cal.name}` : account.label,
+          local: false,
+          htmlLink: e.htmlLink,
+          accountId: e.accountId,
+          calendarId: e.calendarId,
+          color: cal?.color ?? accountColor(accounts, account.id),
+          meetingUrl: e.meetingUrl,
+          attendees: e.attendees,
+          myStatus: e.myStatus,
+          organizer: e.organizer,
+          canEdit: e.canEdit && account.canWrite,
+          recurring: e.recurring,
+        },
+      ];
+    });
 
   return [...local, ...remote].sort((a, b) => a.start - b.start);
+}
+
+/** "Zoom", "Google Meet"… for a Join button. */
+export function meetingName(url: string): string {
+  if (/zoom\.us/i.test(url)) return "Zoom";
+  if (/meet\.google/i.test(url)) return "Meet";
+  if (/teams\.(microsoft|live)/i.test(url)) return "Teams";
+  if (/webex/i.test(url)) return "Webex";
+  if (/zoho/i.test(url)) return "Zoho Meeting";
+  return "meeting";
 }
 
 export function dayKey(ms: number): string {

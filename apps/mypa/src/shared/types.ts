@@ -1,5 +1,31 @@
 /** Domain types shared by the SQLite layer (main), the preload bridge and the UI. */
 
+import type { EmailFolder } from "./email";
+import type {
+  ExpenseCategory,
+  ExpenseRecurring,
+  ExpenseRow,
+  ExpenseSettings,
+  ExpensesWidgetSettings,
+} from "./expenses";
+import type { CaptureRow, CaptureSettings, CaptureWidgetSettings } from "./capture";
+import type {
+  ShoppingHistory,
+  ShoppingItem,
+  ShoppingList,
+  ShoppingSettings,
+  ShoppingWidgetSettings,
+} from "./shopping";
+import type { PlanBlock, PlanDay, PlannerSettings } from "./planner";
+import type { JournalEntry, JournalMeta, JournalWidgetSettings } from "./journal";
+import type { ProjectRow, ProjectsWidgetSettings, TaskStage } from "./projects";
+import type { ReminderRow, RemindersWidgetSettings } from "./reminders";
+import type { BriefingNote, BriefingSettings } from "./briefing";
+import type { CalcWidgetSettings } from "./calc";
+import type { TimerRow, TimerSettings, TimerWidgetSettings } from "./timers";
+import type { ConverterWidgetSettings } from "./units";
+import type { MemoryRecord, MemoryWidgetSettings } from "./memory";
+import type { StudyExam, StudySession, StudySettings, StudySubject, StudyWidgetSettings } from "./study";
 import type { InstalledWidget } from "./widgetPlatform";
 
 export type WidgetKind =
@@ -10,6 +36,21 @@ export type WidgetKind =
   | "tutor"
   | "typing"
   | "flashcards"
+  | "email"
+  | "meeting"
+  | "expenses"
+  | "reminders"
+  | "planner"
+  | "capture"
+  | "shopping"
+  | "journal"
+  | "projects"
+  | "study"
+  | "briefing"
+  | "calculator"
+  | "timer"
+  | "converter"
+  | "memory"
   | "custom";
 export type Importance = "high" | "medium" | "low";
 export type TaskSection = "today" | "backlog";
@@ -67,6 +108,10 @@ export interface TaskRow {
   due: number | null;
   sort: number;
   createdAt: number;
+  /** Project Tracker column while open. */
+  stage: TaskStage;
+  /** When it was ticked off; null while open (and for tasks done before this was kept). */
+  doneAt: number | null;
 }
 
 export interface StepRow {
@@ -79,8 +124,33 @@ export interface StepRow {
 
 /* ---- calendar ------------------------------------------------------------ */
 
-export type CalendarProvider = "google" | "outlook" | "ics";
+export type CalendarProvider = "google" | "zoho" | "caldav" | "outlook" | "ics";
 export type CalendarAccountStatus = "connecting" | "connected" | "error";
+
+/** One calendar inside a connected account (an account can have several). */
+export interface CalendarInfo {
+  id: string;
+  name: string;
+  /** "#rrggbb" from the provider, when it has one. */
+  color: string | null;
+  /** You can add and change events in it. */
+  writable: boolean;
+  /** Hidden from the widget, reminders and the Assistant. */
+  hidden: boolean;
+  primary: boolean;
+}
+
+/** Your answer to an invitation. */
+export type CalendarRsvp = "accepted" | "tentative" | "declined" | "needsAction";
+
+export interface CalendarAttendee {
+  name: string;
+  email: string;
+  status: CalendarRsvp;
+  organizer: boolean;
+  /** This is you. */
+  self: boolean;
+}
 
 /** An event you added yourself — always local, per the local-writes-only design. */
 export interface CalendarEventRow {
@@ -108,12 +178,19 @@ export interface CalendarAccountRow {
   lastSyncedAt: number | null;
   sort: number;
   createdAt: number;
+  /** Desktop reminders before this account's meetings. */
+  notify: boolean;
+  calendars: CalendarInfo[];
+  /** Events can be added and changed from myPA (false for feeds, Outlook, and
+   *  Google accounts connected before myPA asked for that permission). */
+  canWrite: boolean;
 }
 
-/** A read-only event mirrored from a connected calendar. */
+/** An event mirrored from a connected calendar. */
 export interface CalendarRemoteEventRow {
   id: string;
   accountId: string;
+  calendarId: string;
   title: string;
   location: string;
   notes: string;
@@ -121,12 +198,54 @@ export interface CalendarRemoteEventRow {
   end: number;
   allDay: boolean;
   htmlLink: string | null;
+  /** Zoom, Meet, Teams… link found in the event. */
+  meetingUrl: string | null;
+  attendees: CalendarAttendee[];
+  /** Your answer when you're invited; null when it's your own event. */
+  myStatus: CalendarRsvp | null;
+  /** Who organised it, when that isn't you. */
+  organizer: string | null;
+  /** You can change or delete it (not just answer it). */
+  canEdit: boolean;
+  /** One occurrence of a repeating event. */
+  recurring: boolean;
 }
+
+/** A new event in a connected calendar. */
+export interface NewRemoteEvent {
+  accountId: string;
+  calendarId: string;
+  title: string;
+  start: number;
+  end: number;
+  allDay: boolean;
+  location: string;
+  notes: string;
+  /** Email addresses to invite. */
+  guests: string[];
+  /** Google only: add a Google Meet link. */
+  addMeet?: boolean;
+}
+
+export type RemoteEventPatch = Partial<
+  Pick<NewRemoteEvent, "title" | "start" | "end" | "allDay" | "location" | "notes" | "guests">
+>;
+
+export interface CalendarAccountPatch {
+  label?: string;
+  notify?: boolean;
+  /** Calendar ids to hide; the rest are shown. */
+  hiddenCalendars?: string[];
+}
+
+/** How myPA signs in to Google: a client built into this copy, one you added, or none yet. */
+export type GoogleSignIn = "builtin" | "custom" | null;
 
 /* ---- transcribe ----------------------------------------------------------- */
 
-export type TranscriptKind = "file" | "url_media" | "page";
-export type TranscriptStatus = "pending" | "processing" | "done" | "error";
+export type TranscriptKind = "file" | "url_media" | "page" | "meeting";
+/** "recording" only for meetings, while the recorder is still running. */
+export type TranscriptStatus = "recording" | "pending" | "processing" | "done" | "error";
 
 /** A local file transcription, a downloaded-media transcription, or an
  *  extracted web page — always global, like goals/tasks, not tied to a
@@ -158,10 +277,65 @@ export interface Snapshot {
   calendarAccounts: CalendarAccountRow[];
   calendarRemoteEvents: CalendarRemoteEventRow[];
   transcripts: TranscriptRow[];
+  /** One per recorded meeting; its transcript is the `transcripts` row with the same id. */
+  meetings: MeetingRow[];
   /** Custom widgets installed from the marketplace, a file or a dev folder. */
   installedWidgets: InstalledWidget[];
+  /** Every expense, newest first; app-wide like tasks. */
+  expenses: ExpenseRow[];
+  expenseCategories: ExpenseCategory[];
+  /** Bills and subscriptions that post themselves each month. */
+  expenseRecurring: ExpenseRecurring[];
+  /** Every reminder, open and done; app-wide like tasks. */
+  reminders: ReminderRow[];
+  /** Daily Planner: blocks and day records from two weeks back onwards. */
+  planBlocks: PlanBlock[];
+  planDays: PlanDay[];
+  /** Quick Capture: what was captured (newest first) and where it went. */
+  captures: CaptureRow[];
+  /** Shopping Lists: every list, every item, and what's been bought before. */
+  shoppingLists: ShoppingList[];
+  shoppingItems: ShoppingItem[];
+  shoppingHistory: ShoppingHistory[];
+  /** Journal: every entry, newest first (text empty while locked). */
+  journalEntries: JournalEntry[];
+  /** Project Tracker: one record per project name used by tasks and goals. */
+  projects: ProjectRow[];
+  /** Study Planner: subjects, exams, and sessions from 120 days back on. */
+  studySubjects: StudySubject[];
+  studyExams: StudyExam[];
+  studySessions: StudySession[];
+  /** Timers and stopwatches. */
+  timers: TimerRow[];
+  /** Personal Memory: what the user has told myPA (and the Assistant) about themselves. */
+  memories: MemoryRecord[];
   /** app-wide flags kept in the `meta` table */
-  meta: { carryOver: boolean; currentPageId: string | null };
+  meta: {
+    carryOver: boolean;
+    currentPageId: string | null;
+    /** Minutes before a meeting to remind you; -1 = off. */
+    calendarReminder: number;
+    googleSignIn: GoogleSignIn;
+    /** Currency, monthly budget and the day months start, for every Expenses widget. */
+    expenses: ExpenseSettings;
+    /** Work hours, lunch, gaps… for the Daily Planner. */
+    planner: PlannerSettings;
+    /** Quick Capture's shortcut and where new tasks go. */
+    capture: CaptureSettings;
+    /** Shopping Lists: aisle order and logging trips in Expenses. */
+    shopping: ShoppingSettings;
+    /** Journal settings and whether it is locked. */
+    journal: JournalMeta;
+    /** Study hours, session length and limits for the Study Planner. */
+    study: StudySettings;
+    timers: TimerSettings;
+    /** Daily Briefing: morning notification and today's written version. */
+    briefing: { settings: BriefingSettings; note: BriefingNote | null };
+    /** True until a new user finishes or skips the welcome guide. */
+    onboarding: boolean;
+    /** What the user asked to be called (Daily Briefing, the Assistant). */
+    profile: { name: string | null };
+  };
 }
 
 /* ---- per-widget settings ------------------------------------------------- */
@@ -209,6 +383,8 @@ export interface CustomSettings {
 export interface CalendarSettings {
   view: "agenda" | "month";
   lookAheadDays: number;
+  /** "all", "local" (this computer) or an account id. */
+  show: string;
 }
 
 export type WhisperModelSize = "tiny" | "base" | "small";
@@ -217,6 +393,66 @@ export interface TranscribeSettings {
   modelSize: WhisperModelSize;
   /** Override if yt-dlp isn't on PATH. */
   ytdlpPath: string | null;
+}
+
+/* ---- meetings ------------------------------------------------------------ */
+
+export type MeetingSummaryStatus = "none" | "waiting" | "running" | "done" | "error" | "off";
+
+/** Something someone agreed to do, pulled out of a meeting by the summary. */
+export interface MeetingActionItem {
+  text: string;
+  /** Who said they'd do it, as the transcript names them ("Me", "Speaker 1"…). */
+  owner: string | null;
+  /** The To-do task made from it, once added. */
+  taskId: string | null;
+}
+
+/** The meeting-only parts of a recorded meeting. Its id, title, status and
+ *  text (one "[m:ss] Speaker: words" line per turn) live in `transcripts`. */
+export interface MeetingRow {
+  id: string;
+  /** The calendar event it was recorded for, if any. */
+  eventId: string | null;
+  startedAt: number;
+  endedAt: number | null;
+  /** Speaker labels as found ("Speaker 1") → the names the user gave them. */
+  speakerNames: Record<string, string>;
+  summary: string;
+  decisions: string[];
+  actionItems: MeetingActionItem[];
+  summaryStatus: MeetingSummaryStatus;
+  summaryError: string | null;
+  /** The audio is still on disk. */
+  hasAudio: boolean;
+}
+
+export interface MeetingSettings {
+  modelSize: WhisperModelSize;
+  /** Tell the other people apart (Speaker 1, 2…), not only you and them. */
+  meetingSpeakers: boolean;
+  /** AI for summaries: "local" (built in), a provider id, or "off". */
+  meetingAi: string;
+  /** Offer to record when a calendar meeting starts or a call app turns the mic on. */
+  meetingPrompt: boolean;
+  /** Keep the recording's audio after it's transcribed. */
+  meetingKeepAudio: boolean;
+  /** The microphone's device id, "" for automatic (the Windows default, skipping silent ones). */
+  meetingMic: string;
+}
+
+/** How a meeting is processed once the recording stops (from the widget's settings). */
+export interface MeetingOptions {
+  modelSize: WhisperModelSize;
+  speakers: boolean;
+  ai: string;
+  keepAudio: boolean;
+}
+
+export interface StartMeetingInput {
+  title: string;
+  eventId: string | null;
+  options: MeetingOptions;
 }
 
 /** One passage's place in the typing trainer's review schedule. */
@@ -370,6 +606,15 @@ export const DEFAULT_FLASHCARDS_PREFS: FlashcardsPrefs = {
   aiCheck: true,
 };
 
+/** The Email widget's view. */
+export interface EmailSettings {
+  /** Accounts shown; null = all of them. */
+  emailAccounts: string[] | null;
+  emailFolder: EmailFolder;
+  /** AI for summaries and drafts: "local", a provider id, or "off". Unset = automatic. */
+  emailAi: string;
+}
+
 export interface FlashcardsSettings {
   /** By card id. */
   flashCards: Record<string, Flashcard>;
@@ -387,7 +632,20 @@ export type WidgetSettings = Partial<
     TranscribeSettings &
     CustomSettings &
     TypingSettings &
-    FlashcardsSettings
+    FlashcardsSettings &
+    EmailSettings &
+    MeetingSettings &
+    ExpensesWidgetSettings &
+    RemindersWidgetSettings &
+    CaptureWidgetSettings &
+    ShoppingWidgetSettings &
+    JournalWidgetSettings &
+    ProjectsWidgetSettings &
+    StudyWidgetSettings &
+    CalcWidgetSettings &
+    TimerWidgetSettings &
+    ConverterWidgetSettings &
+    MemoryWidgetSettings
 >;
 
 export const DEFAULT_TODO_SETTINGS: TodoSettings = {
@@ -402,11 +660,21 @@ export const DEFAULT_TODO_SETTINGS: TodoSettings = {
 export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   view: "agenda",
   lookAheadDays: 30,
+  show: "all",
 };
 
 export const DEFAULT_TRANSCRIBE_SETTINGS: TranscribeSettings = {
   modelSize: "tiny",
   ytdlpPath: null,
+};
+
+export const DEFAULT_MEETING_SETTINGS: MeetingSettings = {
+  modelSize: "base",
+  meetingSpeakers: true,
+  meetingAi: "local",
+  meetingPrompt: true,
+  meetingKeepAudio: true,
+  meetingMic: "",
 };
 
 /* ---- mutation inputs --------------------------------------------------- */
@@ -445,6 +713,9 @@ export interface NewTask {
   section?: TaskSection;
   due?: number | null;
   goalId?: string | null;
+  stage?: TaskStage;
+  /** Position; default puts it first. */
+  sort?: number;
 }
 
 export interface NewStep {
@@ -461,10 +732,38 @@ export interface NewCalendarEvent {
   notes?: string;
 }
 
+/** What importing a .ics file did. */
+export interface IcsImportResult {
+  added: number;
+  /** Already on the calendar (same title, start and end). */
+  skipped: number;
+}
+
 export interface NewGoogleAccount {
   label: string;
-  clientId: string;
-  clientSecret: string;
+  /** Leave both out to use the Google sign-in set up for myPA. */
+  clientId?: string;
+  clientSecret?: string;
+}
+
+/** Zoho Calendar over CalDAV with an app password, or the one from a connected Zoho mailbox. */
+export interface NewZohoCalendar {
+  label?: string;
+  email?: string;
+  password?: string;
+  region?: string;
+  /** Reuse the address, password and region of this Email-widget account. */
+  emailAccountId?: string;
+  /** A calendar's CalDAV address from Zoho's settings, when finding them doesn't work. */
+  calendarUrl?: string;
+}
+
+/** Any other CalDAV server (iCloud, Fastmail, Nextcloud…). */
+export interface NewCaldavCalendar {
+  label?: string;
+  serverUrl: string;
+  username: string;
+  password: string;
 }
 
 export interface NewOutlookAccount {

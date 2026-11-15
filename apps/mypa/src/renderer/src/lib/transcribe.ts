@@ -44,4 +44,5 @@ export const KIND_LABEL: Record<TranscriptKind, string> = {
   file: "File",
   url_media: "Media URL",
   page: "Page",
+  meeting: "Meeting",
 };

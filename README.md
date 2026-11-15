@@ -18,10 +18,11 @@ myPA is a desktop app (Electron, Windows first) that you keep open all day. You 
 | Widget | What it does |
 | --- | --- |
 | **To-do** | Today and Backlog lists, goals with timelines, steps inside tasks, importance, due dates with live countdowns, drag between lists, and undo on every delete. |
-| **Calendar** | Agenda and month views. Add your own events, or bring in Google, Outlook or any ICS feed (read-only, with your own OAuth app). |
+| **Calendar** | Agenda and month views. Connect as many Google and Zoho accounts as you like (plus iCloud, Fastmail or any CalDAV, and read-only Outlook or ICS feeds) and see every meeting together, colour-coded by calendar. Add events to any of them with guests and a Google Meet link, change or delete your own, and answer invitations (Yes / Maybe / No). One click joins Zoom, Meet or Teams, and a desktop reminder arrives before each meeting. The Assistant can do all of this too, and asks before emailing anyone. |
 | **Transcribe** | Turn audio and video files, media links (via `yt-dlp`) or web pages into searchable text. Transcription runs **on your computer** with Whisper. |
 | **Tutor** | Learn from what you transcribed: explain, how to apply, key takeaways, quizzes. **Teach me** picks an idea from your material and gives a short spoken lesson in the style you choose (storyteller, no-fluff, coach, simple, or your own), lesson after lesson if you like. Uses a built-in **offline** model or a provider you configure. It reads aloud with offline voices or OpenAI / ElevenLabs voices, and listens to your questions. |
 | **Flashcards** | Turns your transcripts and notes into flashcards (written by AI, or instantly offline from key sentences) and quizzes you: multiple choice while a card is new, then typing or recalling the answer. Cards come back on an FSRS spaced-repetition schedule, with explanations, undo and progress charts. |
+| **Email** | Gmail, Zoho Mail and any IMAP account, as many as you like, in one inbox. Read, reply, forward, write new mail with attachments, archive, delete, star and search, with new-mail notifications. Remote images stay hidden until you ask. Select several to act on them at once. AI can catch you up on unread mail, sort it into categories (Work, Receipts, Newsletters…), summarise an email and draft replies. Ask the Assistant to find, count, sort, archive or delete mail (“delete all promotions”): it asks before moving anything, deletes only to Trash, and never sends. |
 | **Note** | Markdown notes with tickable checklists. |
 | **Marketplace widgets** | Focus timer, Habits, World clock, Weather, Countdown, Quick links, Today's focus, plus anything you build or install yourself. |
 
@@ -61,7 +62,8 @@ The goal: **the day's real work is visible, current and actionable at a glance, 
 | Tutor (provider) | Sends your question plus excerpts of the selected transcripts to the provider you configured (OpenAI-compatible or Anthropic). Keys are encrypted with the OS keychain (Electron `safeStorage`) and never reach the UI. |
 | Tutor voices | System and neural (Kokoro, downloaded once) voices run on your computer. OpenAI or ElevenLabs voices, if you choose one, receive the text being read aloud, using your own API key (encrypted like provider keys). |
 | Flashcards | Quick cards: none. AI cards, explanations and answer checks use the Tutor's models: on-device, or the provider you picked (which then receives the part of the transcript being turned into cards, or the card being explained). |
-| Calendar accounts | Read-only sync with the calendar you connect, using an OAuth app you own. |
+| Calendar accounts | Talks only to the calendar you connect: Google through a browser sign-in, Zoho and CalDAV with an app password, both encrypted like provider keys. Events are cached in the local database. Changes go straight to that calendar, which emails guests as it normally would. |
+| Email | Talks only to your mail provider (IMAP and SMTP) with an app password, encrypted like provider keys. Headers of recent inbox mail are cached in the local database; messages are fetched when you open them. Remote images load only when you click Show images. Categories are kept on this computer. AI features send the emails involved to the model you chose: nothing leaves your computer with the built-in model. |
 | Marketplace widgets | Only the hosts listed in a widget's permissions (Weather → Open-Meteo, for example). Widgets have no other network access. |
 
 ## Getting started
@@ -159,7 +161,7 @@ Share the `.mypawidget` file, or publish it on the marketplace. The full guide, 
 
 ## The hosted marketplace
 
-`apps/market` is the public storefront at **[mypa-market.vercel.app](https://mypa-market.vercel.app)**:
+`apps/market` is the public storefront at **[my-pa.xyz](https://my-pa.xyz)**:
 
 - browse and install widgets, and read publisher pages
 - a publisher dashboard for uploading new versions, pricing and Stripe payouts

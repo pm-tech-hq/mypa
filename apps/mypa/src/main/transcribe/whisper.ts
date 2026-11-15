@@ -11,7 +11,8 @@ import { Worker } from "node:worker_threads";
 import { app } from "electron";
 
 import type { WhisperModelSize } from "../../shared/types";
-import type { TranscribeRequest, WorkerResponse } from "./whisper-worker";
+import type { Utterance } from "./segments";
+import type { MeetingRequest, TranscribeRequest, WorkerResponse } from "./whisper-worker";
 
 function workerPath(): string {
   // Compiled sibling of this file — see electron.vite.config.ts's extra
@@ -51,9 +52,66 @@ export function transcribeAudio(
   modelSize: WhisperModelSize,
   onProgress: (pct: number) => void,
 ): Promise<string> {
+  return runJob(
+    (jobId) => ({
+      type: "transcribe",
+      jobId,
+      cacheDir: cacheDir(),
+      audio,
+      modelSize,
+    }),
+    // Transfer the underlying buffer — the main thread doesn't need this
+    // copy of the audio again, so hand it over zero-copy. Always a real
+    // ArrayBuffer here (constructed straight from a Node Buffer in
+    // ffmpeg.ts), never a SharedArrayBuffer.
+    [audio.buffer as ArrayBuffer],
+    onProgress,
+    (msg) => (msg.type === "done" ? msg.text : undefined),
+  );
+}
+
+/** A meeting's two tracks, transcribed separately and labelled by speaker. */
+export function transcribeMeeting(
+  tracks: { me: Float32Array | null; them: Float32Array | null },
+  modelSize: WhisperModelSize,
+  speakers: boolean,
+  onProgress: (pct: number) => void,
+): Promise<Utterance[]> {
+  // A short track can sit in Node's shared Buffer pool; transferring that
+  // would detach the pool, so such a track goes over as its own copy.
+  const own = (a: Float32Array | null) =>
+    a && (a.byteOffset !== 0 || a.byteLength !== a.buffer.byteLength) ? a.slice() : a;
+  const me = own(tracks.me);
+  const them = own(tracks.them);
+  return runJob(
+    (jobId) => ({
+      type: "meeting",
+      jobId,
+      cacheDir: cacheDir(),
+      me,
+      them,
+      modelSize,
+      speakers,
+    }),
+    [me, them].flatMap((a) => (a ? [a.buffer as ArrayBuffer] : [])),
+    onProgress,
+    (msg) => (msg.type === "utterances" ? msg.utterances : undefined),
+  );
+}
+
+function cacheDir(): string {
+  return path.join(app.getPath("userData"), "models");
+}
+
+function runJob<T>(
+  request: (jobId: string) => TranscribeRequest | MeetingRequest,
+  transfer: ArrayBuffer[],
+  onProgress: (pct: number) => void,
+  result: (msg: WorkerResponse) => T | undefined,
+): Promise<T> {
   return enqueue(
     () =>
-      new Promise<string>((resolve, reject) => {
+      new Promise<T>((resolve, reject) => {
         const jobId = randomUUID();
         const w = getWorker();
 
@@ -61,12 +119,14 @@ export function transcribeAudio(
           if (msg.jobId !== jobId) return;
           if (msg.type === "progress") {
             onProgress(msg.pct);
-          } else if (msg.type === "done") {
-            cleanup();
-            resolve(msg.text);
           } else if (msg.type === "error") {
             cleanup();
             reject(new Error(msg.message));
+          } else {
+            const value = result(msg);
+            if (value === undefined) return;
+            cleanup();
+            resolve(value);
           }
         };
         const onError = (err: Error) => {
@@ -88,18 +148,7 @@ export function transcribeAudio(
         w.on("error", onError);
         w.on("exit", onExit);
 
-        const request: TranscribeRequest = {
-          type: "transcribe",
-          jobId,
-          cacheDir: path.join(app.getPath("userData"), "models"),
-          audio,
-          modelSize,
-        };
-        // Transfer the underlying buffer — the main thread doesn't need this
-        // copy of the audio again, so hand it over zero-copy. Always a real
-        // ArrayBuffer here (constructed straight from a Node Buffer in
-        // ffmpeg.ts), never a SharedArrayBuffer.
-        w.postMessage(request, [audio.buffer as ArrayBuffer]);
+        w.postMessage(request(jobId), transfer);
       }),
   );
 }

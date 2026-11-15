@@ -6,6 +6,7 @@ import { app } from "electron";
 
 import { LOCAL_MODELS, type ChatMessage, type LocalModelId } from "../../shared/tutor";
 import type { LocalRequest, LocalResponse } from "./local-worker";
+import { isDownloading } from "./modelSetup";
 
 /**
  * Each generation leaves roughly half a gigabyte behind in the worker
@@ -40,14 +41,20 @@ function release(): void {
   worker = null;
 }
 
-function jobFinished(): void {
+function jobFinished(heavy: boolean): void {
   active -= 1;
-  served += 1;
+  served += heavy ? JOBS_PER_WORKER : 1;
   if (active > 0) return;
   if (served >= JOBS_PER_WORKER) release();
   else idleTimer = setTimeout(release, IDLE_MS);
 }
 
+/**
+ * `heavy`: a long prompt (a meeting transcript) leaves far more behind than
+ * a chat turn — measured at several GB, enough that the next job on the same
+ * worker never finishes. So a heavy job gets a worker of its own, which is
+ * let go as soon as it's done.
+ */
 export function streamLocal(
   jobId: string,
   model: LocalModelId,
@@ -55,8 +62,16 @@ export function streamLocal(
   signal: AbortSignal,
   onDelta: (text: string) => void,
   onStatus: (text: string) => void,
+  heavy = false,
 ): Promise<void> {
   const repo = LOCAL_MODELS.find((m) => m.id === model)?.repo ?? LOCAL_MODELS[1]!.repo;
+  if (isDownloading(model)) {
+    // the Assistant's setup is writing these files; two writers would corrupt them
+    return Promise.reject(
+      new Error("The built-in model is still downloading. Try again once it has finished."),
+    );
+  }
+  if (heavy && served > 0) release();
   return new Promise<void>((resolve, reject) => {
     const w = getWorker();
     active += 1;
@@ -81,7 +96,7 @@ export function streamLocal(
       w.off("error", onError);
       w.off("exit", onExit);
       signal.removeEventListener("abort", onAbort);
-      jobFinished();
+      jobFinished(heavy);
       settle();
     }
     w.on("message", onMessage);

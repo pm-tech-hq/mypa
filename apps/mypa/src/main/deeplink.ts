@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 
+import { mainWindow } from "./windows";
 import { app, BrowserWindow } from "electron";
 
 import { MARKET_IPC } from "../shared/marketApi";
@@ -13,6 +14,31 @@ import { MARKET_IPC } from "../shared/marketApi";
 const SCHEME = "mypa";
 let pending: string | null = null;
 
+/* ---- reminder links: the buttons on a reminder notification ---- */
+
+export type ReminderLinkAction = "open" | "done" | "snooze";
+type ReminderLink = { action: ReminderLinkAction; id: string };
+let onReminder: ((link: ReminderLink) => void) | null = null;
+const pendingReminders: ReminderLink[] = [];
+
+function reminderLinkFrom(argv: string[]): ReminderLink | null {
+  const url = argv.find((a) => a.startsWith(`${SCHEME}://`));
+  if (!url) return null;
+  const m = /^mypa:\/\/reminder\/(open|done|snooze)\/([a-z0-9-]{8,64})\/?$/i.exec(url);
+  return m ? { action: m[1]!.toLowerCase() as ReminderLinkAction, id: m[2]! } : null;
+}
+
+function deliverReminder(link: ReminderLink): void {
+  if (onReminder) onReminder(link);
+  else pendingReminders.push(link);
+}
+
+/** Handles reminder links (including one this launch was started with). */
+export function handleReminderLinks(cb: (link: ReminderLink) => void): void {
+  onReminder = cb;
+  for (const link of pendingReminders.splice(0)) cb(link);
+}
+
 function widgetIdFrom(argv: string[]): string | null {
   const url = argv.find((a) => a.startsWith(`${SCHEME}://`));
   if (!url) return null;
@@ -21,7 +47,7 @@ function widgetIdFrom(argv: string[]): string | null {
 }
 
 function deliver(id: string): void {
-  const win = BrowserWindow.getAllWindows()[0];
+  const win = mainWindow();
   if (!win) {
     pending = id;
     return;
@@ -46,9 +72,17 @@ export function setupDeepLinks(): boolean {
   }
 
   pending = widgetIdFrom(process.argv);
+  const launchReminder = reminderLinkFrom(process.argv);
+  if (launchReminder) pendingReminders.push(launchReminder);
   app.on("second-instance", (_e, argv) => {
+    const reminder = reminderLinkFrom(argv);
+    if (reminder) {
+      // Done and Snooze happen quietly; Open is handled by the reminder code.
+      deliverReminder(reminder);
+      return;
+    }
     const id = widgetIdFrom(argv);
-    const win = BrowserWindow.getAllWindows()[0];
+    const win = mainWindow();
     if (id) deliver(id);
     else if (win) {
       if (win.isMinimized()) win.restore();
@@ -59,6 +93,8 @@ export function setupDeepLinks(): boolean {
   // macOS delivers links through open-url instead of argv.
   app.on("open-url", (e, url) => {
     e.preventDefault();
+    const reminder = reminderLinkFrom([url]);
+    if (reminder) return deliverReminder(reminder);
     const id = widgetIdFrom([url]);
     if (id) deliver(id);
   });

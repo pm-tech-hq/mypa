@@ -15,6 +15,7 @@ import {
   Search,
   Trash2,
   Upload,
+  Video,
   X,
 } from "lucide-react";
 
@@ -38,6 +39,7 @@ const KIND_ICON: Record<TranscriptRow["kind"], typeof FileAudio> = {
   file: FileAudio,
   url_media: Link2,
   page: Globe,
+  meeting: Video,
 };
 
 const MEDIA_EXT = /\.(mp3|wav|m4a|aac|flac|ogg|opus|mp4|mov|mkv|webm|avi|m4v)$/i;
@@ -343,6 +345,7 @@ function TranscriptItem({
       {done && <span>{row.wordCount.toLocaleString()} words</span>}
       {row.status === "processing" && <span>{Math.round(row.progress)}%</span>}
       {row.status === "pending" && <span>Waiting…</span>}
+      {row.status === "recording" && <span>Recording…</span>}
       <span>{formatCreatedAt(row.createdAt)}</span>
     </span>
   );
@@ -389,7 +392,7 @@ function TranscriptItem({
           </div>
         )}
         <div className="xcr__row-actions">
-          {(row.status === "processing" || row.status === "pending") && (
+          {(row.status === "processing" || row.status === "pending" || row.status === "recording") && (
             <Loader2 size={14} className="xcr__spin" aria-label="Working" />
           )}
           {row.status === "error" && (

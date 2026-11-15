@@ -88,14 +88,29 @@ export function resolveRect(
 /** Gap kept between tiled / auto-placed widgets and the board edge. */
 export const GAP = 12;
 
-/** Default footprint per kind — mirrors the presets in main/db.ts. */
-const DEFAULT_SIZE: Record<WidgetKind, Size> = {
+/** Default footprint per kind ï¿½ mirrors the presets in main/db.ts. */
+export const DEFAULT_SIZE: Record<WidgetKind, Size> = {
   todo: { w: 480, h: 620 },
   calendar: { w: 640, h: 500 },
   transcribe: { w: 480, h: 600 },
   tutor: { w: 480, h: 640 },
   typing: { w: 560, h: 660 },
   flashcards: { w: 520, h: 660 },
+  email: { w: 560, h: 640 },
+  meeting: { w: 520, h: 640 },
+  expenses: { w: 520, h: 680 },
+  reminders: { w: 440, h: 600 },
+  planner: { w: 480, h: 720 },
+  capture: { w: 460, h: 560 },
+  shopping: { w: 440, h: 640 },
+  journal: { w: 480, h: 660 },
+  projects: { w: 760, h: 640 },
+  study: { w: 520, h: 680 },
+  briefing: { w: 480, h: 640 },
+  calculator: { w: 340, h: 560 },
+  timer: { w: 380, h: 540 },
+  converter: { w: 380, h: 560 },
+  memory: { w: 420, h: 600 },
   blank: { w: 340, h: 240 },
   /** Placeholder only: custom widgets pass their manifest size instead. */
   custom: { w: 360, h: 320 },
@@ -104,7 +119,7 @@ const DEFAULT_SIZE: Record<WidgetKind, Size> = {
 /**
  * Widgets are stored in the pixel space of a reference board (the board size
  * when the app opened). Rendering scales them to the live board size, so
- * resizing the window resizes the widgets proportionally — and undoes itself
+ * resizing the window resizes the widgets proportionally ï¿½ and undoes itself
  * when the window returns to its old size.
  */
 export function scaleRect(r: Rect, ref: Size, bounds: Size): Rect {
@@ -113,7 +128,7 @@ export function scaleRect(r: Rect, ref: Size, bounds: Size): Rect {
   return clampRect({ x: r.x * sx, y: r.y * sy, w: r.w * sx, h: r.h * sy }, bounds);
 }
 
-/** Inverse of `scaleRect` — live pixels back into reference space. */
+/** Inverse of `scaleRect` ï¿½ live pixels back into reference space. */
 export function unscaleRect(r: Rect, ref: Size, bounds: Size): Rect {
   const sx = ref.w / bounds.w;
   const sy = ref.h / bounds.h;

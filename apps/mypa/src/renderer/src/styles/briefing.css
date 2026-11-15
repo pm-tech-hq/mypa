@@ -1,0 +1,307 @@
+/* myPA — Daily Briefing. A calm page: one headline, then short lists.
+ * Monochrome; red only for late things, the accent for "soon". */
+
+.br {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-size: var(--ds-text-sm);
+  color: var(--ds-fg);
+}
+
+.br__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px 60px;
+}
+
+.br__grow {
+  flex: 1 1 auto;
+}
+
+.br__muted {
+  margin: 0;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+}
+
+.br__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.br__titles {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.br__date {
+  margin: 0;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+}
+
+.br__greet {
+  margin: 2px 0 0;
+  font-size: var(--ds-text-xl);
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+.br__headline {
+  margin: 0;
+  color: var(--ds-fg-2);
+  font-size: var(--ds-text-md);
+  line-height: 1.5;
+}
+
+.br__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  color: var(--ds-fg);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+}
+
+.br__btn:hover:not(:disabled) {
+  background: var(--ds-hover);
+}
+
+.br__btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.br__spin {
+  animation: br-spin 1s linear infinite;
+}
+
+@keyframes br-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.br__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--ds-accent-ink);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  cursor: pointer;
+}
+
+.br__link:hover {
+  text-decoration: underline;
+}
+
+.br__icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-muted);
+  cursor: pointer;
+}
+
+.br__icon:hover {
+  background: var(--ds-hover);
+  color: var(--ds-fg);
+}
+
+.br__note {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-sunken);
+  border: 1px solid var(--ds-border);
+}
+
+.br__note.is-stale .br__note-text {
+  color: var(--ds-muted);
+}
+
+.br__note-text {
+  margin: 0;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.br__note-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+}
+
+.br__error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--ds-radius-md);
+  background: color-mix(in srgb, var(--ds-danger) 8%, transparent);
+  color: var(--ds-danger);
+  font-size: var(--ds-text-xs);
+}
+
+.br__section h4 {
+  margin: 0 0 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--ds-border);
+  color: var(--ds-muted);
+  font-size: var(--ds-text-2xs);
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.br__section ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.br__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 3px 0;
+}
+
+.br__item + .br__item {
+  border-top: 1px solid color-mix(in srgb, var(--ds-border) 60%, transparent);
+}
+
+.br__time {
+  flex: 0 0 64px;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.br__section:not(.is-today):not(.is-coming) .br__time {
+  display: none;
+}
+
+.br__kind {
+  flex: 0 0 auto;
+  color: var(--ds-faint);
+}
+
+.br__text {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.br__title {
+  overflow-wrap: anywhere;
+}
+
+.br__detail {
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+}
+
+.br__item.is-late .br__detail {
+  color: var(--ds-danger);
+}
+
+.br__item.is-late .br__kind {
+  color: var(--ds-danger);
+}
+
+.br__item.is-soon .br__detail {
+  color: var(--ds-accent-ink);
+}
+
+.br__item.is-done .br__kind {
+  color: var(--ds-fg);
+}
+
+.br__act {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: 999px;
+  background: var(--ds-surface);
+  color: var(--ds-fg);
+  font: inherit;
+  font-size: var(--ds-text-2xs);
+  font-weight: var(--ds-weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.br__act:hover {
+  background: var(--ds-hover);
+}
+
+.br__act.is-done:hover {
+  border-color: var(--ds-fg);
+  background: var(--ds-fg);
+  color: var(--ds-white);
+}
+
+.br__more {
+  margin: 4px 0 0;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+}
+
+.br__empty {
+  margin: 20px 0;
+}
+
+.br__morning {
+  align-self: flex-start;
+  color: var(--ds-muted);
+}
+
+/* the outline a widget flashes when something asks to show it */
+.widget.widget--flash {
+  animation: widget-flash 1.3s ease-out;
+}
+
+@keyframes widget-flash {
+  0%,
+  40% {
+    box-shadow:
+      0 0 0 2px var(--ds-accent),
+      var(--ds-shadow-pop);
+  }
+  100% {
+    box-shadow: var(--ds-shadow-pop);
+  }
+}

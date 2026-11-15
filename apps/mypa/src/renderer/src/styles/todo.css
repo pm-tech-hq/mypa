@@ -178,22 +178,44 @@
   font-size: var(--ds-text-sm);
 }
 
-.addrow__kbd {
+.addrow__submit {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 20px;
-  height: 18px;
+  width: 22px;
+  height: 20px;
+  padding: 0;
   border: 1px solid var(--ds-border-strong);
   border-bottom-width: 2px;
   border-radius: var(--ds-radius-xs);
+  background: var(--ds-surface);
   color: var(--ds-muted);
   font: inherit;
-  transition: opacity var(--ds-dur-fast) ease;
+  cursor: pointer;
+  transition:
+    opacity var(--ds-dur-fast) ease,
+    color var(--ds-dur-fast) ease,
+    background-color var(--ds-dur-fast) ease,
+    border-color var(--ds-dur-fast) ease;
 
   @starting-style {
     opacity: 0;
   }
+}
+
+.addrow__submit:hover {
+  color: var(--ds-accent-fg);
+  background: var(--ds-accent);
+  border-color: var(--ds-accent);
+}
+
+.addrow__submit:active {
+  border-bottom-width: 1px;
+}
+
+.addrow__submit:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 1px;
 }
 
 .addrow > .field {

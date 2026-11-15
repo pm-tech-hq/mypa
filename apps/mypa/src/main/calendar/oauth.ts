@@ -9,7 +9,7 @@ import { createHash, randomBytes } from "node:crypto";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
 
-import { shell } from "electron";
+import { app, shell } from "electron";
 
 const TIMEOUT_MS = 180_000;
 
@@ -97,7 +97,11 @@ export function runLoopbackAuth(
     server.listen(0, "127.0.0.1", () => {
       const { port } = server.address() as AddressInfo;
       redirectUri = `http://127.0.0.1:${port}/callback`;
-      void shell.openExternal(buildAuthUrl(redirectUri));
+      const url = buildAuthUrl(redirectUri);
+      // A development build under test signs in without a browser (the stand-in
+      // server redirects straight back).
+      if (!app.isPackaged && process.env.MYPA_OAUTH_HEADLESS) void fetch(url).catch(() => {});
+      else void shell.openExternal(url);
     });
   });
 }

@@ -1,0 +1,615 @@
+/* myPA — Quick Capture: the composer (shared by the widget and the pop-up
+ * box), the capture log, and the pop-up window itself. */
+
+/* ---- composer ----------------------------------------------------------- */
+.capc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.capc__box {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  transition: border-color var(--ds-dur-fast) var(--ds-ease-out), box-shadow var(--ds-dur-fast) var(--ds-ease-out);
+}
+
+.capc__box:focus-within {
+  border-color: var(--ds-fg);
+  box-shadow: 0 0 0 3px var(--ds-accent-soft);
+}
+
+.capc__box.is-error {
+  border-color: var(--ds-danger);
+}
+
+.capc__input {
+  flex: 1 1 auto;
+  min-height: 24px;
+  max-height: 168px;
+  padding: 3px 0;
+  border: 0;
+  outline: 0;
+  resize: none;
+  background: transparent;
+  color: var(--ds-fg);
+  font: inherit;
+  font-size: var(--ds-text-md);
+  line-height: 1.45;
+}
+
+.capc__input::placeholder {
+  color: var(--ds-faint);
+}
+
+.capc__save {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-fg);
+  color: var(--ds-bg);
+  cursor: pointer;
+  transition: opacity var(--ds-dur-fast) var(--ds-ease-out);
+}
+
+.capc__save:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.capc__kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.capc__kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--ds-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ds-muted);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  cursor: pointer;
+  transition:
+    background var(--ds-dur-fast) var(--ds-ease-out),
+    color var(--ds-dur-fast) var(--ds-ease-out),
+    border-color var(--ds-dur-fast) var(--ds-ease-out);
+}
+
+.capc__kind:hover {
+  background: var(--ds-hover);
+  color: var(--ds-fg);
+}
+
+.capc__kind.is-on {
+  border-color: var(--ds-fg);
+  background: var(--ds-fg);
+  color: var(--ds-bg);
+}
+
+/* picked automatically: outlined, so a click to choose it yourself is visible */
+.capc__kind.is-on.is-auto {
+  background: var(--ds-accent-soft);
+  border-color: var(--ds-accent-line);
+  color: var(--ds-fg);
+}
+
+.capc__preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 18px;
+  font-size: var(--ds-text-xs);
+  line-height: 1.45;
+  color: var(--ds-fg-2);
+}
+
+.capc__preview svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.capc__preview.is-error {
+  color: var(--ds-danger);
+}
+
+.capc__why {
+  color: var(--ds-muted);
+}
+
+/* ---- widget ------------------------------------------------------------- */
+.cap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-size: var(--ds-text-sm);
+  color: var(--ds-fg);
+}
+
+.cap__compose {
+  flex: 0 0 auto;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+.cap__bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 4px 14px;
+}
+
+.cap__filters {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.cap__filters::-webkit-scrollbar {
+  display: none;
+}
+
+.cap__filter {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-muted);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+}
+
+.cap__filter:hover {
+  background: var(--ds-hover);
+  color: var(--ds-fg);
+}
+
+.cap__filter.is-on {
+  background: var(--ds-sunken);
+  color: var(--ds-fg);
+}
+
+.cap__count {
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--ds-border);
+  color: var(--ds-fg-2);
+  font-size: var(--ds-text-2xs);
+  line-height: 16px;
+  text-align: center;
+}
+
+.cap__icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-muted);
+  cursor: pointer;
+}
+
+.cap__icon:hover,
+.cap__icon.is-on,
+.cap__icon[data-state="open"] {
+  background: var(--ds-hover);
+  color: var(--ds-fg);
+}
+
+.cap__search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 14px 2px;
+  padding: 0 4px 0 10px;
+  height: 32px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-muted);
+}
+
+.cap__search:focus-within {
+  border-color: var(--ds-border-strong);
+}
+
+.cap__search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ds-fg);
+  font: inherit;
+}
+
+.cap__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 6px 64px;
+}
+
+.cap__group + .cap__group {
+  margin-top: 6px;
+}
+
+.cap__day {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 8px 8px 4px;
+  background: var(--ds-surface);
+  color: var(--ds-muted);
+  font-size: var(--ds-text-2xs);
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cap__group ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cap__item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px;
+  border-radius: var(--ds-radius-md);
+}
+
+.cap__item:hover,
+.cap__item:focus-within {
+  background: var(--ds-hover);
+}
+
+.cap__kindicon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-sunken);
+  color: var(--ds-fg-2);
+}
+
+.cap__item.kind-note .cap__kindicon {
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent-ink);
+}
+
+.cap__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  outline: 0;
+}
+
+.cap__body[role="button"] {
+  cursor: pointer;
+}
+
+.cap__text {
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.cap__text.is-open {
+  display: block;
+}
+
+.cap__item.is-done .cap__text {
+  color: var(--ds-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--ds-faint);
+}
+
+.cap__where {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 2px 0 0;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+}
+
+.cap__item.is-gone .cap__where span:first-child {
+  font-style: italic;
+}
+
+.cap__time {
+  flex: 0 0 auto;
+  color: var(--ds-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* over the time on hover, so rows line up whatever their buttons */
+.cap__actions {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: flex;
+  gap: 2px;
+  padding-left: 12px;
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ds-dur-fast) var(--ds-ease-out);
+}
+
+.cap__item:hover .cap__actions,
+.cap__item:focus-within .cap__actions,
+.cap__actions:has([data-state="open"]) {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cap__item:hover .cap__time,
+.cap__item:focus-within .cap__time {
+  visibility: hidden;
+}
+
+.cap__menu-note {
+  margin-left: auto;
+  padding-left: 12px;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-2xs);
+}
+
+.cap__empty {
+  padding: 28px 18px;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+  line-height: 1.55;
+  text-align: center;
+}
+
+.cap__empty p {
+  margin: 0 auto;
+  max-width: 320px;
+}
+
+.cap__empty-title {
+  margin-bottom: 4px !important;
+  color: var(--ds-fg);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-semibold);
+}
+
+.cap__dealt {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  padding: 10px;
+}
+
+.cap__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ds-fg-2);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  text-decoration: underline;
+  text-decoration-color: var(--ds-border-strong);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.cap__link:hover {
+  color: var(--ds-fg);
+}
+
+.cap__flash {
+  position: absolute;
+  left: 50%;
+  bottom: 48px;
+  z-index: 4;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-fg);
+  color: var(--ds-bg);
+  max-width: calc(100% - 28px);
+  width: max-content;
+  font-size: var(--ds-text-xs);
+  line-height: 1.4;
+  text-align: center;
+}
+
+.cap__flash.is-error {
+  background: var(--ds-danger);
+  color: var(--ds-white);
+}
+
+.cap__foot {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--ds-border);
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+}
+
+.cap__foot > span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cap__foot .is-error {
+  color: var(--ds-danger);
+}
+
+.cap__foot kbd,
+.wsettings kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--ds-border-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--ds-radius-xs);
+  background: var(--ds-surface);
+  color: var(--ds-fg);
+  font: inherit;
+  font-size: var(--ds-text-2xs);
+}
+
+.cap .undo-toast {
+  bottom: 44px;
+}
+
+/* ---- the pop-up window -------------------------------------------------- */
+html.is-capture-window,
+html.is-capture-window body,
+html.is-capture-window #root {
+  background: transparent !important;
+  overflow: hidden;
+}
+
+.cappop {
+  padding: 12px 20px 28px;
+}
+
+.cappop__card {
+  padding: 12px 14px 12px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-pop);
+}
+
+.cappop__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  -webkit-app-region: drag;
+}
+
+.cappop__brand {
+  color: var(--ds-muted);
+  font-size: var(--ds-text-2xs);
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cappop__open {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--ds-radius-xs);
+  background: none;
+  color: var(--ds-muted);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.cappop__open:hover {
+  background: var(--ds-hover);
+  color: var(--ds-fg);
+}
+
+.cappop__done {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 74px;
+  padding: 4px 2px;
+  animation: cappop-in var(--ds-dur) var(--ds-ease-out);
+}
+
+.cappop__done-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--ds-fg);
+  color: var(--ds-bg);
+}
+
+.cappop__done-title {
+  margin: 0;
+  font-weight: var(--ds-weight-semibold);
+}
+
+.cappop__done-where {
+  margin: 2px 0 0;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+}
+
+@keyframes cappop-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cappop__done {
+    animation: none;
+  }
+}
+
+/* ---- settings ----------------------------------------------------------- */
+.capset__record {
+  min-width: 170px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wsettings__hint.is-error {
+  color: var(--ds-danger);
+}
+
+.capset__rules {
+  line-height: 1.7;
+}

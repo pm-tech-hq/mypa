@@ -1,0 +1,713 @@
+/* myPA — Reminders widget.
+ * Monochrome like the board: ink for text, the accent for "now" and the
+ * primary action, danger only for overdue. */
+
+.rem {
+  container: rem / inline-size;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-size: var(--ds-text-sm);
+  line-height: 1.45;
+  color: var(--ds-fg);
+}
+
+.rem__grow {
+  flex: 1 1 auto;
+}
+
+/* ---- quick add ---------------------------------------------------------- */
+.rem__add {
+  flex: 0 0 auto;
+  padding: 12px 14px 4px;
+}
+
+.rem__add .addrow {
+  margin-bottom: 4px;
+}
+
+.rem__more {
+  height: var(--ds-control-md);
+  width: var(--ds-control-md);
+}
+
+.rem__hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  margin: 0 0 4px;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-muted);
+}
+
+.rem__hint.is-error {
+  color: var(--ds-danger);
+}
+
+.rem__hint-none {
+  line-height: 1.4;
+}
+
+.rem__hint-rel {
+  color: var(--ds-muted);
+}
+
+.rem__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent-ink);
+  font-weight: var(--ds-weight-medium);
+  white-space: nowrap;
+}
+
+/* ---- notices ------------------------------------------------------------ */
+.rem__notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 14px 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-sunken);
+  font-size: var(--ds-text-xs);
+  color: var(--ds-fg-2);
+  line-height: 1.4;
+}
+
+.rem__notice > svg {
+  flex: 0 0 auto;
+  color: var(--ds-muted);
+}
+
+.rem__notice span {
+  flex: 1 1 auto;
+}
+
+.rem__notice button {
+  flex: 0 0 auto;
+  appearance: none;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+  color: var(--ds-fg);
+  font: inherit;
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+}
+
+.rem__notice button:hover {
+  border-color: var(--ds-fg);
+}
+
+/* ---- bar ---------------------------------------------------------------- */
+.rem__bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 14px 10px;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+.rem__bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rem__count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--ds-hover);
+  color: var(--ds-fg-2);
+  font-size: var(--ds-text-2xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.rem__count.is-late {
+  background: var(--ds-danger);
+  color: var(--ds-white);
+}
+
+.rem__search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 2px 0 8px;
+  border: 1px solid var(--ds-accent);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  color: var(--ds-muted);
+}
+
+.rem__search input {
+  width: 140px;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-fg);
+}
+
+.rem__icon-btn {
+  appearance: none;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--ds-dur-fast) ease,
+    color var(--ds-dur-fast) ease;
+}
+
+.rem__icon-btn:hover:not(:disabled) {
+  background: var(--ds-hover);
+  color: var(--ds-fg);
+}
+
+.rem__text-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-fg-2);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+}
+
+.rem__text-btn:hover {
+  background: var(--ds-hover);
+  color: var(--ds-fg);
+}
+
+.rem__text-btn.is-danger {
+  color: var(--ds-danger);
+}
+
+/* ---- list --------------------------------------------------------------- */
+.rem__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 14px 64px;
+}
+
+.rem__none {
+  margin: 16px 0;
+  text-align: center;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-muted);
+}
+
+.rem__group + .rem__group {
+  margin-top: 10px;
+}
+
+.rem__group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 2px;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-fg-2);
+}
+
+.rem__group-head .num {
+  font-weight: var(--ds-weight-regular);
+  color: var(--ds-muted);
+}
+
+.rem__group--overdue .rem__group-head {
+  color: var(--ds-danger);
+}
+
+.rem__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---- item --------------------------------------------------------------- */
+.rem-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0 -6px;
+  padding: 7px 6px;
+  border-radius: var(--ds-radius-md);
+  transition: background-color var(--ds-dur-fast) ease;
+}
+
+.rem-item:hover {
+  background: var(--ds-hover);
+}
+
+.rem-item.is-ringing {
+  background: var(--ds-accent-soft);
+}
+
+.rem-item.is-focused {
+  box-shadow: inset 0 0 0 2px var(--ds-accent);
+  animation: rem-pulse 1.2s ease 2;
+}
+
+@keyframes rem-pulse {
+  50% {
+    background: var(--ds-accent-soft);
+  }
+}
+
+.rem-item__check {
+  appearance: none;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  padding: 0;
+  border: 1.5px solid var(--ds-border-strong);
+  border-radius: 50%;
+  background: var(--ds-surface);
+  color: var(--ds-white);
+  cursor: pointer;
+  transition:
+    border-color var(--ds-dur-fast) ease,
+    background-color var(--ds-dur-fast) ease;
+}
+
+.rem-item__check:hover {
+  border-color: var(--ds-accent);
+}
+
+.rem-item.is-due .rem-item__check {
+  border-color: var(--ds-danger);
+}
+
+.rem-item.is-done .rem-item__check {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent);
+}
+
+.rem-item__main {
+  appearance: none;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rem-item__title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow-wrap: anywhere;
+  font-weight: var(--ds-weight-medium);
+}
+
+.rem-item.is-done .rem-item__title {
+  color: var(--ds-muted);
+  text-decoration: line-through;
+  font-weight: var(--ds-weight-regular);
+}
+
+.rem-item__star {
+  flex: 0 0 auto;
+  color: var(--ds-priority-high);
+  fill: currentColor;
+}
+
+.rem-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-muted);
+}
+
+.rem-item__when,
+.rem-item__repeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rem-item__when.is-late {
+  color: var(--ds-danger);
+  font-weight: var(--ds-weight-medium);
+}
+
+.rem-item.is-ringing .rem-item__when {
+  color: var(--ds-accent-ink);
+}
+
+.rem-item__rel {
+  color: var(--ds-faint);
+}
+
+.rem-item__note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-fg-2);
+}
+
+.rem-item__more {
+  opacity: 0;
+}
+
+.rem-item:hover .rem-item__more,
+.rem-item:focus-within .rem-item__more,
+.rem-item__more[data-state="open"] {
+  opacity: 1;
+}
+
+.rem-item__now {
+  order: 3;
+  flex: 1 0 100%;
+  display: flex;
+  gap: 6px;
+  padding-left: 28px;
+}
+
+.rem-item__now button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+  color: var(--ds-fg-2);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+}
+
+.rem-item__now button:hover {
+  border-color: var(--ds-fg);
+  color: var(--ds-fg);
+}
+
+.rem-item__now button.is-primary {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent);
+  color: var(--ds-accent-fg);
+}
+
+.rem-item__now button.is-primary:hover {
+  background: var(--ds-accent-hover);
+}
+
+.rem-menu__hint {
+  margin-left: auto;
+  padding-left: 16px;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-2xs);
+}
+
+/* ---- flash -------------------------------------------------------------- */
+.rem__flash {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 4;
+  padding: 8px 12px;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-fg);
+  color: var(--ds-bg);
+  font-size: var(--ds-text-xs);
+  box-shadow: var(--ds-shadow-pop);
+  animation: rem-rise var(--ds-dur) var(--ds-ease-out);
+}
+
+/* ---- sheet -------------------------------------------------------------- */
+.rem__sheet-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: flex-end;
+  background: color-mix(in srgb, var(--ds-fg) 14%, transparent);
+  animation: rem-fade var(--ds-dur) ease;
+}
+
+@keyframes rem-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rem-rise {
+  from {
+    translate: 0 16px;
+    opacity: 0;
+  }
+}
+
+.rem__sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 14px;
+  border-radius: var(--ds-radius-lg) var(--ds-radius-lg) 0 0;
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-pop);
+  animation: rem-rise var(--ds-dur) var(--ds-ease-out);
+}
+
+.rem__sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: var(--ds-weight-semibold);
+}
+
+.rem__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rem__field > span:first-child {
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-fg-2);
+}
+
+.rem__notes {
+  height: auto;
+  min-height: 52px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.rem__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rem__row > .field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.rem__every > span,
+.rem__until > span {
+  flex: 0 0 auto;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-fg-2);
+}
+
+.rem__every input {
+  flex: 0 0 72px;
+}
+
+.rem__switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-fg-2);
+  cursor: pointer;
+}
+
+.rem__switch input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--ds-accent);
+}
+
+.rem__switch span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.rem__quick,
+.rem__days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.rem__quick button,
+.rem__days button {
+  appearance: none;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--ds-border);
+  border-radius: 999px;
+  background: var(--ds-surface);
+  color: var(--ds-fg-2);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  cursor: pointer;
+  transition:
+    border-color var(--ds-dur-fast) ease,
+    background-color var(--ds-dur-fast) ease,
+    color var(--ds-dur-fast) ease;
+}
+
+.rem__days button {
+  width: 34px;
+  padding: 0;
+}
+
+.rem__quick button:hover,
+.rem__days button:hover {
+  border-color: var(--ds-fg);
+  color: var(--ds-fg);
+}
+
+.rem__quick button.is-on,
+.rem__days button.is-on {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent);
+  color: var(--ds-accent-fg);
+}
+
+.rem__sheet-note {
+  margin: 0;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-muted);
+}
+
+.rem__sheet-note.is-warn {
+  color: var(--ds-danger);
+}
+
+.rem__snoozed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-sunken);
+  font-size: var(--ds-text-xs);
+}
+
+.rem__snoozed button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: none;
+  color: var(--ds-accent-ink);
+  font: inherit;
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+}
+
+.rem__sheet-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.rem__btn {
+  appearance: none;
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+  color: var(--ds-fg);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+}
+
+.rem__btn:hover:not(:disabled) {
+  border-color: var(--ds-fg);
+}
+
+.rem__btn.is-primary {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent);
+  color: var(--ds-accent-fg);
+}
+
+.rem__btn.is-primary:hover:not(:disabled) {
+  background: var(--ds-accent-hover);
+}
+
+.rem__btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Narrow widget: keep rows readable. */
+@container rem (max-width: 340px) {
+  .rem__search input {
+    width: 90px;
+  }
+  .rem-item__rel {
+    display: none;
+  }
+}

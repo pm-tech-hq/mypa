@@ -6,6 +6,7 @@ import { useReadyStore } from "../lib/store";
 import { openMarket } from "../lib/marketBus";
 import { widgetDisplayTitle } from "../lib/widgetKinds";
 import { describePermission } from "../../../shared/widgetPlatform";
+import { DEFAULT_REMINDERS_SETTINGS } from "../../../shared/reminders";
 import {
   DEFAULT_CALENDAR_SETTINGS,
   DEFAULT_TODO_SETTINGS,
@@ -18,9 +19,21 @@ import {
   type WidgetRow,
 } from "../../../shared/types";
 import { CalendarAccounts } from "./CalendarAccounts";
+import { CaptureSettingsForm } from "./CaptureSettings";
+import { ShoppingSettingsForm } from "./ShoppingSettings";
+import { JournalSettingsForm } from "./JournalSettings";
+import { StudySettingsForm } from "./StudySettings";
+import { BriefingSettingsForm } from "./BriefingWidget";
+import { CalculatorSettingsForm } from "./CalculatorWidget";
+import { TimerSettingsForm } from "./TimerWidget";
+import { ConverterSettingsForm } from "./ConverterWidget";
+import { MemorySettingsForm } from "./MemoryWidget";
 import { TrustBadge } from "./TrustBadge";
+import { EmailSettingsForm } from "./EmailAccounts";
+import { ExpensesSettingsForm } from "./ExpensesSettings";
 import { FlashcardsSettingsForm } from "./FlashcardsSettings";
 import { TypingSettingsForm } from "./TypingSettings";
+import { MeetingSettingsForm } from "./MeetingSettings";
 
 interface Props {
   widget: WidgetRow;
@@ -77,6 +90,20 @@ export function WidgetSettings({ widget, onClose }: Props) {
         {widget.kind === "custom" && <CustomSettingsForm widget={widget} />}
         {widget.kind === "typing" && <TypingSettingsForm widget={widget} />}
         {widget.kind === "flashcards" && <FlashcardsSettingsForm widget={widget} />}
+        {widget.kind === "meeting" && <MeetingSettingsForm widget={widget} />}
+        {widget.kind === "email" && <EmailSettingsForm widget={widget} />}
+        {widget.kind === "expenses" && <ExpensesSettingsForm />}
+        {widget.kind === "reminders" && <RemindersSettingsForm widget={widget} />}
+        {widget.kind === "planner" && <PlannerSettingsForm />}
+        {widget.kind === "capture" && <CaptureSettingsForm />}
+        {widget.kind === "shopping" && <ShoppingSettingsForm widget={widget} />}
+        {widget.kind === "journal" && <JournalSettingsForm />}
+        {widget.kind === "study" && <StudySettingsForm />}
+        {widget.kind === "briefing" && <BriefingSettingsForm />}
+        {widget.kind === "calculator" && <CalculatorSettingsForm widget={widget} />}
+        {widget.kind === "timer" && <TimerSettingsForm />}
+        {widget.kind === "converter" && <ConverterSettingsForm widget={widget} />}
+        {widget.kind === "memory" && <MemorySettingsForm />}
 
         {widget.kind === "todo" && (
           <label className="wsettings__toggle">
@@ -93,6 +120,155 @@ export function WidgetSettings({ widget, onClose }: Props) {
         )}
       </div>
     </div>
+  );
+}
+
+function PlannerSettingsForm() {
+  const { snapshot, actions } = useReadyStore();
+  const s = snapshot.meta.planner;
+  const set = (patch: Partial<typeof s>) => void actions.setPlannerSettings(patch);
+  const minutes = (list: number[], zero?: string) =>
+    list.map((m) => (
+      <option key={m} value={m}>
+        {m === 0 && zero ? zero : m % 60 === 0 && m >= 60 ? `${m / 60} hour${m > 60 ? "s" : ""}` : `${m} minutes`}
+      </option>
+    ));
+  return (
+    <>
+      <div className="wsettings__field">
+        <span className="wsettings__label">Your working day</span>
+        <div className="wsettings__row">
+          <input
+            type="time"
+            aria-label="Day starts"
+            className="wsettings__input"
+            value={s.dayStart}
+            onChange={(e) => e.target.value && set({ dayStart: e.target.value })}
+          />
+          <span className="wsettings__hint">to</span>
+          <input
+            type="time"
+            aria-label="Day ends"
+            className="wsettings__input"
+            value={s.dayEnd}
+            onChange={(e) => e.target.value && set({ dayEnd: e.target.value })}
+          />
+        </div>
+        <small className="wsettings__hint">“Plan my day” only places tasks inside these hours.</small>
+      </div>
+      <label className="wsettings__toggle">
+        <input type="checkbox" checked={s.lunch} onChange={(e) => set({ lunch: e.target.checked })} />
+        <span>Keep time for lunch</span>
+      </label>
+      {s.lunch && (
+        <div className="wsettings__field">
+          <div className="wsettings__row">
+            <input
+              type="time"
+              aria-label="Lunch starts"
+              className="wsettings__input"
+              value={s.lunchStart}
+              onChange={(e) => e.target.value && set({ lunchStart: e.target.value })}
+            />
+            <select
+              aria-label="Lunch length"
+              className="wsettings__input"
+              value={s.lunchMinutes}
+              onChange={(e) => set({ lunchMinutes: Number(e.target.value) })}
+            >
+              {minutes([30, 45, 60, 90])}
+            </select>
+          </div>
+          <small className="wsettings__hint">If a meeting lands on it, lunch moves up to an hour either way.</small>
+        </div>
+      )}
+      <label className="wsettings__field">
+        <span className="wsettings__label">Usual length of a task</span>
+        <select
+          className="wsettings__input"
+          value={s.defaultMinutes}
+          onChange={(e) => set({ defaultMinutes: Number(e.target.value) })}
+        >
+          {minutes([15, 30, 45, 60, 90, 120])}
+        </select>
+        <small className="wsettings__hint">A task you've planned before keeps the length you gave it.</small>
+      </label>
+      <label className="wsettings__field">
+        <span className="wsettings__label">Breathing room after each block</span>
+        <select className="wsettings__input" value={s.gap} onChange={(e) => set({ gap: Number(e.target.value) })}>
+          {minutes([0, 5, 10, 15, 30], "None")}
+        </select>
+      </label>
+      <label className="wsettings__field">
+        <span className="wsettings__label">Keep clear around meetings</span>
+        <select
+          className="wsettings__input"
+          value={s.meetingBuffer}
+          onChange={(e) => set({ meetingBuffer: Number(e.target.value) })}
+        >
+          {minutes([0, 5, 10, 15], "Nothing")}
+        </select>
+      </label>
+      <label className="wsettings__toggle">
+        <input type="checkbox" checked={s.alerts} onChange={(e) => set({ alerts: e.target.checked })} />
+        <span>Alert me as each block starts (once the plan is approved)</span>
+      </label>
+      <small className="wsettings__hint">These apply to every Daily Planner widget.</small>
+    </>
+  );
+}
+
+function RemindersSettingsForm({ widget }: { widget: WidgetRow }) {
+  const { actions } = useReadyStore();
+  const s = { ...DEFAULT_REMINDERS_SETTINGS, ...widget.settings };
+  const [testSent, setTestSent] = useState<boolean | null>(null);
+  return (
+    <>
+      <label className="wsettings__field">
+        <span className="wsettings__label">Time for reminders with only a day</span>
+        <input
+          type="time"
+          className="wsettings__input"
+          value={s.remDefaultTime}
+          onChange={(e) =>
+            e.target.value &&
+            void actions.updateWidgetSettings(widget.id, { remDefaultTime: e.target.value })
+          }
+        />
+        <small className="wsettings__hint">“Tomorrow” or “on Friday” with no time alert at this time.</small>
+      </label>
+      <label className="wsettings__field">
+        <span className="wsettings__label">Quick snooze button</span>
+        <select
+          className="wsettings__input"
+          value={s.remSnooze}
+          onChange={(e) => void actions.updateWidgetSettings(widget.id, { remSnooze: Number(e.target.value) })}
+        >
+          {[5, 10, 15, 30, 60].map((m) => (
+            <option key={m} value={m}>
+              {m === 60 ? "1 hour" : `${m} minutes`}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="wsettings__field">
+        <span className="wsettings__label">Desktop alerts</span>
+        <button
+          type="button"
+          className="wsettings__link"
+          onClick={() => void window.mypa.system.testNotification().then(setTestSent)}
+        >
+          Send a test alert
+        </button>
+        {testSent !== null && (
+          <small className="wsettings__hint">
+            {testSent
+              ? "Sent. If nothing appeared, check Windows notification settings for myPA."
+              : "Notifications are off. Turn them on in App settings."}
+          </small>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -231,8 +407,8 @@ function CalendarSettingsForm({ widget }: { widget: WidgetRow }) {
       <CalendarAccounts />
 
       <p className="wsettings__hint">
-        Events you add always stay local to myPA. Connected calendars are
-        read-only feeds shown alongside them.
+        New events go to the calendar you pick when adding them: this computer, or a connected
+        Google, Zoho or CalDAV calendar. Outlook and ICS feeds are read-only.
       </p>
     </>
   );

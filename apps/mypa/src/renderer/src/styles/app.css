@@ -1140,6 +1140,42 @@ select.wsettings__input {
   color: var(--ds-white);
 }
 
+/* The main action of a settings form ("Connect", "Save"). */
+.btn {
+  appearance: none;
+  align-self: flex-start;
+  height: var(--ds-control-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 1px solid var(--ds-accent);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-accent);
+  color: var(--ds-white);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+  transition:
+    filter var(--ds-dur-fast) ease,
+    scale var(--ds-dur-fast) var(--ds-ease-out);
+}
+
+.btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.btn:active:not(:disabled) {
+  scale: 0.97;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .wsettings__toggle {
   display: flex;
   align-items: flex-start;
@@ -1535,4 +1571,47 @@ select.wsettings__input {
   color: var(--ds-muted);
   text-decoration: line-through;
   text-decoration-color: var(--ds-faint);
+}
+
+/* A widget that crashed while drawing (the rest of the board carries on). */
+.widget-crash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+}
+
+.widget-crash__title {
+  margin: 0;
+  color: var(--ds-fg);
+  font-weight: var(--ds-weight-semibold);
+}
+
+.widget-crash__detail {
+  max-width: 320px;
+  margin: 0;
+  color: var(--ds-muted);
+  font-size: var(--ds-text-xs);
+  overflow-wrap: anywhere;
+}
+
+.widget-crash__retry {
+  height: 28px;
+  margin-top: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: 999px;
+  background: var(--ds-surface);
+  color: var(--ds-fg);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  cursor: pointer;
+}
+
+.widget-crash__retry:hover {
+  background: var(--ds-hover);
 }

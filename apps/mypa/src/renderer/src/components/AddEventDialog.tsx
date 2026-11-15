@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { NewCalendarEvent } from "../../../shared/types";
 import type { AgendaItem } from "../lib/calendar";
+import { errorText } from "../lib/tutor";
 import { DatePicker } from "./DatePicker";
 import { Button } from "./ui/button";
 import {
@@ -16,13 +17,32 @@ import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
 import { Textarea } from "./ui/textarea";
 
+/** A calendar a new event can go in. */
+export interface EventTarget {
+  /** "local", or the account id and calendar id joined by a newline. */
+  value: string;
+  label: string;
+  /** Google calendars can add a Meet link. */
+  google: boolean;
+}
+
+export interface EventDraft extends Required<NewCalendarEvent> {
+  target: string;
+  guests: string[];
+  addMeet: boolean;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultDate: Date;
-  /** Set to edit an existing local event instead of adding one. */
+  /** Set to edit an existing event instead of adding one. */
   event?: AgendaItem | null;
-  onSave: (input: NewCalendarEvent) => void;
+  /** Where a new event can go; the first is the default. */
+  targets: EventTarget[];
+  defaultTarget?: string;
+  /** Rejects with the reason when the calendar refuses; the dialog stays open and shows it. */
+  onSave: (input: EventDraft) => Promise<void> | void;
 }
 
 function toDateInput(d: Date): string {
@@ -48,7 +68,15 @@ function minutesBetween(d1: string, t1: string, d2: string, t2: string): number 
   return Number.isNaN(a) || Number.isNaN(b) ? null : Math.round((b - a) / 60_000);
 }
 
-export function AddEventDialog({ open, onOpenChange, defaultDate, event, onSave }: Props) {
+export function AddEventDialog({
+  open,
+  onOpenChange,
+  defaultDate,
+  event,
+  targets,
+  defaultTarget,
+  onSave,
+}: Props) {
   const [title, setTitle] = useState("");
   const [allDay, setAllDay] = useState(false);
   const [startDate, setStartDate] = useState(() => toDateInput(defaultDate));
@@ -59,12 +87,26 @@ export function AddEventDialog({ open, onOpenChange, defaultDate, event, onSave 
   );
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+  const [target, setTarget] = useState("local");
+  const [guests, setGuests] = useState("");
+  const [addMeet, setAddMeet] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const remote = event ? !event.local : target !== "local";
+  const google = !event && Boolean(targets.find((t) => t.value === target)?.google);
 
   useEffect(() => {
     if (!open) return;
     setError(null);
+    setSaving(false);
+    setAddMeet(false);
     if (event) {
+      setGuests(
+        event.attendees
+          .filter((a) => !a.self)
+          .map((a) => a.email)
+          .join(", "),
+      );
       const start = new Date(event.start);
       // All-day ends are exclusive midnights; show the last day instead.
       const end = new Date(event.allDay ? event.end - 1 : event.end);
@@ -79,6 +121,12 @@ export function AddEventDialog({ open, onOpenChange, defaultDate, event, onSave 
       return;
     }
     const start = nextHalfHour(new Date());
+    setGuests("");
+    setTarget(
+      defaultTarget && targets.some((t) => t.value === defaultTarget)
+        ? defaultTarget
+        : (targets[0]?.value ?? "local"),
+    );
     setTitle("");
     setAllDay(false);
     setStartDate(toDateInput(defaultDate));
@@ -87,6 +135,8 @@ export function AddEventDialog({ open, onOpenChange, defaultDate, event, onSave 
     setEndTime(toTimeInput(new Date(start.getTime() + 60 * 60_000)));
     setLocation("");
     setNotes("");
+    // Targets are rebuilt with every snapshot; only opening the dialog should reset it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, defaultDate, event]);
 
   /** Moving the start moves the end with it, keeping the duration. */
@@ -101,7 +151,8 @@ export function AddEventDialog({ open, onOpenChange, defaultDate, event, onSave 
     setEndTime(toTimeInput(end));
   };
 
-  const submit = () => {
+  const submit = async () => {
+    if (saving) return;
     const trimmed = title.trim();
     if (!trimmed) {
       setError("Give it a title.");
@@ -129,15 +180,36 @@ export function AddEventDialog({ open, onOpenChange, defaultDate, event, onSave 
       return;
     }
 
-    onSave({
-      title: trimmed,
-      start,
-      end,
-      allDay,
-      location: location.trim(),
-      notes: notes.trim(),
-    });
-    onOpenChange(false);
+    const invited = guests
+      .split(/[\s,;]+/)
+      .map((g) => g.trim())
+      .filter(Boolean);
+    const bad = invited.find((g) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(g));
+    if (remote && bad) {
+      setError(`“${bad}” isn't an email address.`);
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave({
+        title: trimmed,
+        start,
+        end,
+        allDay,
+        location: location.trim(),
+        notes: notes.trim(),
+        target,
+        guests: remote ? invited : [],
+        addMeet: google && addMeet,
+      });
+      onOpenChange(false);
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -155,9 +227,31 @@ export function AddEventDialog({ open, onOpenChange, defaultDate, event, onSave 
               autoFocus
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submit()}
+              onKeyDown={(e) => e.key === "Enter" && void submit()}
             />
           </div>
+
+          {event ? (
+            !event.local && <p className="text-xs text-muted-foreground">In {event.source}</p>
+          ) : (
+            targets.length > 1 && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="event-calendar">Calendar</Label>
+                <select
+                  id="event-calendar"
+                  className="h-9 rounded-md border bg-transparent px-2 text-sm"
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                >
+                  {targets.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )
+          )}
 
           <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2">
             <Label htmlFor="event-allday" className="cursor-pointer">
@@ -218,6 +312,32 @@ export function AddEventDialog({ open, onOpenChange, defaultDate, event, onSave 
             />
           </div>
 
+          {remote && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="event-guests">Guests</Label>
+              <Input
+                id="event-guests"
+                placeholder="Email addresses, separated by commas"
+                value={guests}
+                onChange={(e) => setGuests(e.target.value)}
+              />
+              {guests.trim() && (
+                <p className="text-xs text-muted-foreground">
+                  {event ? "Guests get an email about changes." : "Guests get an invitation email."}
+                </p>
+              )}
+            </div>
+          )}
+
+          {google && (
+            <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2">
+              <Label htmlFor="event-meet" className="cursor-pointer">
+                Add a Google Meet link
+              </Label>
+              <Switch id="event-meet" checked={addMeet} onCheckedChange={setAddMeet} />
+            </div>
+          )}
+
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
@@ -225,8 +345,8 @@ export function AddEventDialog({ open, onOpenChange, defaultDate, event, onSave 
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" onClick={submit}>
-            {event ? "Save" : "Add event"}
+          <Button type="button" disabled={saving} onClick={() => void submit()}>
+            {saving ? "Saving…" : event ? "Save" : "Add event"}
           </Button>
         </DialogFooter>
       </DialogContent>

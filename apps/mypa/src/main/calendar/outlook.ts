@@ -4,7 +4,7 @@
  * needed (no secret; PKCE covers it).
  */
 import { createPkcePair, runLoopbackAuth } from "./oauth";
-import type { NormalizedEvent } from "./types";
+import { findMeetingUrl, type NormalizedEvent } from "./types";
 
 const AUTH_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
 const TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
@@ -106,7 +106,9 @@ export async function refreshOutlookAccessToken(
 }
 
 interface GraphEventItem {
+  id?: string;
   subject?: string;
+  onlineMeeting?: { joinUrl?: string } | null;
   bodyPreview?: string;
   isAllDay?: boolean;
   webLink?: string;
@@ -144,10 +146,15 @@ export async function fetchOutlookEvents(
       const end = Date.parse(`${item.end.dateTime}Z`);
       if (Number.isNaN(start) || Number.isNaN(end)) continue;
 
+      const location = item.location?.displayName ?? "";
+      const notes = item.bodyPreview ?? "";
       events.push({
+        key: item.id ?? `${item.subject ?? ""}|${start}`,
+        calendarId: "primary",
         title: item.subject ?? "(untitled)",
-        location: item.location?.displayName ?? "",
-        notes: item.bodyPreview ?? "",
+        location,
+        notes,
+        meetingUrl: item.onlineMeeting?.joinUrl ?? findMeetingUrl(location, notes),
         start,
         end,
         allDay: Boolean(item.isAllDay),

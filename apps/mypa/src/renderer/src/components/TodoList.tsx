@@ -5,7 +5,6 @@ import {
   useRef,
   useState,
   type DragEvent,
-  type KeyboardEvent,
 } from "react";
 
 import { CheckCheck, ChevronRight, Sun } from "lucide-react";
@@ -172,8 +171,7 @@ export function TodoList({ widget }: { widget: WidgetRow }) {
   const newTaskProject: Project = settings.projects?.length === 1 ? settings.projects[0]! : "myPA";
 
   const addDraft = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.key !== "Enter") return;
+    () => {
       const title = draft.trim();
       if (!title) return;
       setDraft("");
@@ -336,7 +334,7 @@ export function TodoList({ widget }: { widget: WidgetRow }) {
             value={draft}
             placeholder="Add a task for today"
             onChange={setDraft}
-            onKeyDown={addDraft}
+            onSubmit={addDraft}
           />
 
           <section
@@ -365,6 +363,12 @@ export function TodoList({ widget }: { widget: WidgetRow }) {
               <p className="todo__empty">
                 <CheckCheck size={14} aria-hidden />
                 All done for today.
+              </p>
+            ) : visible.length === 0 ? (
+              <p className="todo__empty">
+                <Sun size={14} aria-hidden />
+                No tasks yet. Type your first one above, then press Enter or click the return
+                button.
               </p>
             ) : (
               <p className="todo__empty">

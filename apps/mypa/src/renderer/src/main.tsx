@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import "./styles/shadcn.css";
 import "./styles/app.css";
 import { App } from "./App";
+import { CapturePopup } from "./components/CapturePopup";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { StoreProvider } from "./lib/store";
 
@@ -16,7 +17,7 @@ createRoot(container).render(
   <StrictMode>
     <TooltipProvider>
       <StoreProvider>
-        <App />
+        {window.location.hash === "#capture" ? <CapturePopup /> : <App />}
       </StoreProvider>
     </TooltipProvider>
   </StrictMode>,

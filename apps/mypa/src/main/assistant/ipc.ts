@@ -7,6 +7,8 @@ import {
   type AssistantSettings,
 } from "../../shared/assistant";
 import { answerApproval, modelInfo, runAgent, undoAction } from "./agent";
+import type { LocalModelId } from "../../shared/tutor";
+import { cancelDownload, modelStatus, pauseDownload, startDownload } from "../tutor/modelSetup";
 import { getSettings, listScopes, saveSettings } from "./settings";
 
 const running = new Map<string, AbortController>();
@@ -16,6 +18,10 @@ export function registerAssistantHandlers(): void {
   ipcMain.handle(ASSISTANT_IPC.saveSettings, (_e, s: AssistantSettings) => saveSettings(s));
   ipcMain.handle(ASSISTANT_IPC.scopes, () => listScopes());
   ipcMain.handle(ASSISTANT_IPC.modelInfo, () => modelInfo());
+  ipcMain.handle(ASSISTANT_IPC.modelStatus, (_e, model: LocalModelId) => modelStatus(model));
+  ipcMain.handle(ASSISTANT_IPC.modelDownload, (_e, model: LocalModelId) => startDownload(model));
+  ipcMain.handle(ASSISTANT_IPC.modelPause, () => pauseDownload());
+  ipcMain.handle(ASSISTANT_IPC.modelCancel, (_e, model: LocalModelId) => cancelDownload(model));
 
   ipcMain.handle(ASSISTANT_IPC.send, (e, req: AssistantRequest) => {
     const send = (event: AssistantEvent) => {

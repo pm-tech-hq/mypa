@@ -2,9 +2,9 @@
  * "Other calendars" — any public/private .ics feed URL (Google, Outlook, and
  * Apple/iCloud all expose one from their own settings). Read-only, no OAuth.
  */
-import ical, { type ParameterValue, type VEvent } from "node-ical";
+import ical, { type CalendarResponse, type ParameterValue, type VEvent } from "node-ical";
 
-import type { NormalizedEvent } from "./types";
+import { findMeetingUrl, type NormalizedEvent } from "./types";
 
 function textOf(value: ParameterValue | undefined, fallback = ""): string {
   if (value == null) return fallback;
@@ -16,7 +16,20 @@ export async function fetchIcsEvents(
   windowStart: Date,
   windowEnd: Date,
 ): Promise<NormalizedEvent[]> {
-  const data = await ical.async.fromURL(feedUrl);
+  return eventsFromIcs(await ical.async.fromURL(feedUrl), windowStart, windowEnd);
+}
+
+/**
+ * Every event in parsed iCalendar data. Repeats are expanded between
+ * `windowStart` and `windowEnd`; one-off events outside that window are
+ * dropped unless `keepAllSingles` is set.
+ */
+export function eventsFromIcs(
+  data: CalendarResponse,
+  windowStart: Date,
+  windowEnd: Date,
+  keepAllSingles = false,
+): NormalizedEvent[] {
   const out: NormalizedEvent[] = [];
 
   for (const item of Object.values(data)) {
@@ -29,14 +42,20 @@ export async function fetchIcsEvents(
         to: windowEnd,
       });
       for (const inst of instances) {
+        const location = textOf(inst.event.location);
+        const notes = textOf(inst.event.description);
         out.push({
+          key: `${vevent.uid ?? ""}|${inst.start.getTime()}`,
+          calendarId: "feed",
           title: textOf(inst.summary, "(untitled)"),
-          location: textOf(inst.event.location),
-          notes: textOf(inst.event.description),
+          location,
+          notes,
           start: inst.start.getTime(),
           end: inst.end.getTime(),
           allDay: inst.isFullDay,
           htmlLink: inst.event.url ?? null,
+          meetingUrl: findMeetingUrl(location, notes),
+          recurring: true,
         });
       }
       continue;
@@ -45,12 +64,21 @@ export async function fetchIcsEvents(
     const start = vevent.start;
     const end = vevent.end ?? vevent.start;
     if (!start) continue;
-    if (start.getTime() > windowEnd.getTime() || end.getTime() < windowStart.getTime()) continue;
+    if (
+      !keepAllSingles &&
+      (start.getTime() > windowEnd.getTime() || end.getTime() < windowStart.getTime())
+    )
+      continue;
 
+    const location = textOf(vevent.location);
+    const notes = textOf(vevent.description);
     out.push({
+      key: `${vevent.uid ?? ""}|${start.getTime()}`,
+      calendarId: "feed",
       title: textOf(vevent.summary, "(untitled)"),
-      location: textOf(vevent.location),
-      notes: textOf(vevent.description),
+      location,
+      notes,
+      meetingUrl: findMeetingUrl(location, notes),
       start: start.getTime(),
       end: end.getTime(),
       allDay: Boolean(start.dateOnly),

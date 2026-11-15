@@ -16,7 +16,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 12px;
 }
 
@@ -176,10 +176,13 @@
 }
 
 .cal__row-source {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--ds-fg-2);
   font-weight: var(--ds-weight-medium);
-  text-transform: capitalize;
 }
 
 .cal__row-location {
@@ -196,9 +199,9 @@
   opacity: 0.7;
 }
 
-/* details: indented to the title column */
+/* details: indented to the title column (time, gap, colour bar, gap) */
 .cal__details {
-  padding: 0 6px 10px calc(6px + 104px + 10px);
+  padding: 0 6px 10px calc(6px + 104px + 10px + 3px + 10px);
   font-size: var(--ds-text-xs);
   color: var(--ds-fg-2);
   animation: cal-reveal var(--ds-dur) var(--ds-ease-out);
@@ -309,6 +312,10 @@
 .cal__notice svg {
   flex: 0 0 auto;
   color: var(--ds-danger);
+}
+
+.cal__notice--ok svg {
+  color: var(--ds-muted);
 }
 
 .cal__notice .cal__spin {
@@ -532,4 +539,393 @@
 
 .cal__row--now .cal__row-rel {
   padding-left: 11px;
+}
+
+/* ---- which calendars to show: dots + a native select ------------------ */
+.cal__pick {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--ds-control-sm);
+  padding: 0 4px 0 8px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  cursor: pointer;
+}
+
+.cal__pick:hover {
+  border-color: var(--ds-border-strong);
+}
+
+.cal__pick:focus-within {
+  outline: 2px solid var(--ds-accent-line);
+  outline-offset: 1px;
+}
+
+.cal__pick-dots {
+  flex: 0 0 auto;
+  display: flex;
+}
+
+.cal__pick-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--ds-surface);
+}
+
+.cal__pick-dot + .cal__pick-dot {
+  margin-left: -3px;
+}
+
+.cal__pick select {
+  flex: 1 1 auto;
+  min-width: 0;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ds-fg);
+  font: inherit;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-medium);
+  text-overflow: ellipsis;
+  cursor: pointer;
+  outline: none;
+}
+
+.cal__pick-chevron {
+  flex: 0 0 auto;
+  color: var(--ds-muted);
+  pointer-events: none;
+}
+
+.cal__head .seg,
+.cal__new,
+.cal__import {
+  flex: 0 0 auto;
+}
+
+.cal__import .cal__spin {
+  animation: cal-spin 1s linear infinite;
+}
+
+/* ---- "Up next": a meeting with a link that's on now or starts soon ----- */
+.cal__next {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -2px 0 12px;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid var(--ds-border);
+  border-left: 3px solid var(--cal-color, var(--ds-accent));
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+.cal__next-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cal__next-when {
+  font-size: var(--ds-text-2xs);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-accent-ink);
+}
+
+.cal__next-title {
+  color: var(--ds-fg);
+  font-weight: var(--ds-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- rows: calendar colour, answers ----------------------------------- */
+.cal__row-bar {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 3px;
+  margin: 1px 0;
+  border-radius: 2px;
+  background: var(--cal-color, var(--ds-faint));
+}
+
+.cal__row--declined .cal__row-title {
+  color: var(--ds-muted);
+  text-decoration: line-through;
+}
+
+/* your answer, when it isn't "yes" */
+.cal__tag {
+  flex: 0 0 auto;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: var(--ds-text-2xs);
+  font-weight: var(--ds-weight-medium);
+  line-height: 16px;
+  background: var(--ds-sunken);
+  color: var(--ds-fg-2);
+}
+
+.cal__tag--needsAction {
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent-ink);
+}
+
+.cal__notice-text--wrap {
+  white-space: normal;
+}
+
+/* ---- details: join, answer, guests ------------------------------------- */
+.cal__details-repeat {
+  display: inline-flex;
+  margin-left: 6px;
+  vertical-align: -1px;
+}
+
+.cal__details-actions .cal__details-delete--confirm {
+  color: var(--ds-danger);
+  border-color: var(--ds-danger);
+  background: transparent;
+}
+
+.cal__details-actions .cal__details-delete--confirm:hover {
+  color: var(--ds-accent-fg);
+  background: var(--ds-danger);
+  border-color: var(--ds-danger);
+}
+
+.cal__join {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--ds-control-sm);
+  margin: 2px 0;
+  padding: 0 12px;
+  appearance: none;
+  border: 0;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-accent);
+  color: var(--ds-accent-fg);
+  font: inherit;
+  font-weight: var(--ds-weight-medium);
+  cursor: pointer;
+}
+
+.cal__join:hover {
+  filter: brightness(1.08);
+}
+
+.cal__rsvp {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.cal__rsvp-label {
+  margin-right: 4px;
+  color: var(--ds-fg);
+  font-weight: var(--ds-weight-medium);
+}
+
+.cal__rsvp-btn {
+  height: 24px;
+  padding: 0 10px;
+  appearance: none;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: 999px;
+  background: var(--ds-surface);
+  color: var(--ds-fg-2);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cal__rsvp-btn:hover:not(:disabled) {
+  border-color: var(--ds-fg);
+  color: var(--ds-fg);
+}
+
+.cal__rsvp-btn.is-on {
+  border-color: var(--ds-accent);
+  background: var(--ds-accent);
+  color: var(--ds-accent-fg);
+}
+
+.cal__rsvp .cal__spin {
+  color: var(--ds-muted);
+  animation: cal-spin 1s linear infinite;
+}
+
+.cal__guests {
+  margin: 2px 0 6px;
+}
+
+.cal__guest-list {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0 0 0 17px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+
+.cal__guest {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal__guest small {
+  color: var(--ds-muted);
+}
+
+.cal__guest-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ds-faint);
+}
+
+.cal__guest--accepted .cal__guest-dot {
+  border-color: #1f9d55;
+  background: #1f9d55;
+}
+
+.cal__guest--tentative .cal__guest-dot {
+  border-color: var(--ds-priority-medium, #d9a400);
+}
+
+.cal__guest--declined {
+  color: var(--ds-muted);
+  text-decoration: line-through;
+}
+
+.cal__guest--declined .cal__guest-dot {
+  border-color: var(--ds-danger);
+}
+
+.cal__link--inline {
+  margin: 2px 0 0 13px;
+  padding: 2px 4px;
+}
+
+@container cal (max-width: 400px) {
+  .cal__new-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .cal__row-time {
+    width: 84px;
+  }
+
+  .cal__details {
+    padding-left: 6px;
+  }
+}
+
+/* ---- account editor ---------------------------------------------------- */
+.cal-acc {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.cal-acc__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cal-acc__top .cal-accounts__info {
+  flex: 1 1 auto;
+}
+
+.cal-acc__dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.cal-acc__error {
+  margin: 0;
+  color: var(--ds-danger);
+  font-size: var(--ds-text-xs);
+}
+
+.cal-accounts__meta.cal-acc__error {
+  font-size: var(--ds-text-2xs);
+  white-space: normal;
+}
+
+.cal-acc__edit {
+  margin: 10px 0 0;
+}
+
+.cal-acc__cals {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.cal-acc__cals legend {
+  margin-bottom: 6px;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-fg);
+}
+
+.cal-acc__cal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cal-acc__cal small {
+  display: inline;
+  margin: 0;
+}
+
+.cal-acc__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.cal-acc__confirm {
+  color: var(--ds-fg-2);
+  font-size: var(--ds-text-xs);
+}
+
+.cal-acc__danger {
+  color: var(--ds-danger);
+}
+
+.cal-acc__small {
+  align-self: flex-start;
+  margin-top: 0;
 }

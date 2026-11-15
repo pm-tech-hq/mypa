@@ -12,7 +12,7 @@ import {
  * may mark publishers verified or official; any other registry's widgets are
  * community at best. Private halves live outside the repo:
  * - root: signs the catalog built into the app (`apps/mypa/.keys/`, offline)
- * - marketplace: signs the hosted registry at mypa-market.vercel.app (held
+ * - marketplace: signs the hosted registry at my-pa.xyz (held
  *   as a Vercel env secret), so the root key never leaves this machine.
  */
 export const ROOT_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
