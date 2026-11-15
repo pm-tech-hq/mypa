@@ -97,8 +97,12 @@ export async function checkForUpdates(manual: boolean): Promise<void> {
   await checking;
 }
 
-/** Quit, install and relaunch. Callers must let windows close first. */
+/**
+ * Quit, install and relaunch. Callers must let windows close first. The
+ * installer runs silently (no setup wizard), into the folder myPA is already
+ * installed in, then opens myPA again.
+ */
 export function installUpdate(): void {
   if (status.state !== "ready") return;
-  autoUpdater.quitAndInstall(false, true);
+  autoUpdater.quitAndInstall(true, true);
 }
