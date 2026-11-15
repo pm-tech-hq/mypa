@@ -51,43 +51,28 @@ const STEPS = ["Welcome", "Your pages", "Connect", "Good to know"] as const;
 const isMac = navigator.platform.toLowerCase().includes("mac");
 
 /**
- * Starter layout: one row, or two rows split in order, whichever keeps each
- * widget closest to its natural shape. Each row fills the board's width in
- * proportion to the widgets' usual widths, so nothing ends up stretched
- * across the whole page.
+ * Starter layout: the widgets side by side in one row at their usual size,
+ * leaving the rest of the board free. Shrinks them evenly only when the
+ * board is too small to hold them; never stretches them to fill it.
  */
 export function layout(kinds: WidgetKind[], board: Size): StarterWidget[] {
   if (!kinds.length) return [];
   const size = (k: WidgetKind) => DEFAULT_SIZE[k] ?? { w: 480, h: 600 };
-  let best: StarterWidget[] = [];
-  let bestScore = Infinity;
-  for (const rows of kinds.length === 1 ? [1] : [1, 2]) {
-    const per = Math.ceil(kinds.length / rows);
-    const split = Array.from({ length: rows }, (_, r) =>
-      kinds.slice(r * per, (r + 1) * per),
-    ).filter((r) => r.length);
-    const h = Math.floor((board.h - GAP * (split.length + 1)) / split.length);
-    const out: StarterWidget[] = [];
-    let score = 0;
-    split.forEach((row, r) => {
-      const avail = board.w - GAP * (row.length + 1);
-      const total = row.reduce((t, k) => t + size(k).w, 0);
-      let x = GAP;
-      row.forEach((k) => {
-        const w = Math.floor((avail * size(k).w) / total);
-        const want = size(k).w / size(k).h;
-        score += Math.abs(Math.log(w / Math.max(1, h) / want));
-        if (w < MIN_W * 1.25 || h < MIN_H * 2) score += 100;
-        out.push({ kind: k, x, y: GAP + r * (h + GAP), w, h });
-        x += w + GAP;
-      });
-    });
-    if (score < bestScore) {
-      bestScore = score;
-      best = out;
-    }
-  }
-  return best;
+  const totalW = kinds.reduce((t, k) => t + size(k).w, 0);
+  const maxH = Math.max(...kinds.map((k) => size(k).h));
+  const scale = Math.min(
+    1,
+    (board.w - GAP * (kinds.length + 1)) / totalW,
+    (board.h - GAP * 2) / maxH,
+  );
+  let x = GAP;
+  return kinds.map((k) => {
+    const w = Math.max(MIN_W, Math.floor(size(k).w * scale));
+    const h = Math.max(MIN_H, Math.floor(size(k).h * scale));
+    const out = { kind: k, x, y: GAP, w, h };
+    x += w + GAP;
+    return out;
+  });
 }
 
 export function Onboarding({ board }: { board: Size }) {

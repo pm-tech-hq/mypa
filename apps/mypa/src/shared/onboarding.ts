@@ -16,8 +16,9 @@ export interface StarterArea {
   widgets: WidgetKind[];
 }
 
-/** The Home page every new user gets, whatever they pick. */
-export const HOME_WIDGETS: WidgetKind[] = ["briefing", "todo", "capture", "reminders"];
+/** The Home page every new user gets, whatever they pick. Kept to a couple so a
+ *  new board is not crowded; more are one click away in the widget picker. */
+export const HOME_WIDGETS: WidgetKind[] = ["briefing", "todo"];
 
 export const STARTER_AREAS: StarterArea[] = [
   {
@@ -25,21 +26,21 @@ export const STARTER_AREAS: StarterArea[] = [
     label: "Work and projects",
     blurb: "Plan your day around meetings and keep projects moving.",
     page: { title: "Work", icon: "briefcase" },
-    widgets: ["projects", "planner", "calendar", "email"],
+    widgets: ["planner", "projects"],
   },
   {
     id: "study",
     label: "Study",
-    blurb: "Revision timetables, flashcards and a tutor for your notes.",
+    blurb: "Revision timetables and flashcards for your notes.",
     page: { title: "Study", icon: "book-open" },
-    widgets: ["study", "flashcards", "tutor", "transcribe"],
+    widgets: ["study", "flashcards"],
   },
   {
     id: "home",
     label: "Home and errands",
-    blurb: "Shopping lists, kitchen timers and quick conversions.",
+    blurb: "Shopping lists and kitchen timers.",
     page: { title: "Home life", icon: "shopping-cart" },
-    widgets: ["shopping", "timer", "converter", "calculator"],
+    widgets: ["shopping", "timer"],
   },
   {
     id: "money",

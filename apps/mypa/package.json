@@ -1,6 +1,6 @@
 {
   "name": "mypa",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "license": "AGPL-3.0-only",
   "private": true,
   "description": "myPA — a personal-assistant desktop app. A blank board you fill with resizable widgets.",

@@ -430,7 +430,7 @@ export function App() {
                 Add a widget to start filling it. Drag a header to move it, pull an edge to resize.
               </p>
               <div className="canvas__empty-kinds">
-                {WIDGET_KINDS.map(({ kind, label, description, icon: Icon }) => (
+                {EMPTY_PAGE_TILES.map(({ kind, label, description, icon: Icon }) => (
                   <button
                     key={kind}
                     type="button"
@@ -442,6 +442,17 @@ export function App() {
                     <span className="kind-tile__desc">{description}</span>
                   </button>
                 ))}
+                <AddWidgetMenu
+                  onPick={addWidget}
+                  installed={snapshot?.installedWidgets ?? []}
+                  updates={updateCount}
+                >
+                  <button type="button" className="kind-tile">
+                    <LayoutGrid size={16} aria-hidden />
+                    <span className="kind-tile__label">All widgets</span>
+                    <span className="kind-tile__desc">See everything you can add</span>
+                  </button>
+                </AddWidgetMenu>
                 <button
                   type="button"
                   className="kind-tile kind-tile--market"
@@ -508,6 +519,10 @@ export function App() {
     </>
   );
 }
+
+/** The few widgets an empty page suggests; the rest are under "All widgets". */
+const EMPTY_PAGE_KINDS: WidgetKind[] = ["todo", "planner", "reminders", "capture"];
+const EMPTY_PAGE_TILES = WIDGET_KINDS.filter((k) => EMPTY_PAGE_KINDS.includes(k.kind));
 
 /** Paid widgets from a registry can't be placed until they're licensed. */
 function usable(w: InstalledWidget): boolean {
