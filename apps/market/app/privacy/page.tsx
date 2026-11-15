@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ISSUES_URL, REPO_URL } from "@/lib/release";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Privacy policy",
   description:
-    "What the myPA app and the my-pa.xyz website collect, where it goes, and how Google, calendar and email data is handled.",
-};
+    "What the myPA app and my-pa.xyz collect, where it goes, and how Google, calendar and email data is handled. The app keeps your data on your PC.",
+  path: "/privacy",
+});
 
 export default function Privacy() {
   return (

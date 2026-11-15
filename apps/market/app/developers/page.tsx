@@ -5,11 +5,14 @@ import { PERMISSIONS, WIDGET_CATEGORIES, WIDGET_ICON_KEYS, describePermission } 
 
 import { Seal } from "@/components/icons";
 import { platformFeePercent } from "@/lib/stripe";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Build a widget",
-  description: "Build widgets for myPA with plain HTML, CSS and JavaScript, then publish or sell them here.",
-};
+export const metadata: Metadata = pageMeta({
+  title: "Build a widget for myPA",
+  description:
+    "Build widgets for myPA with plain HTML, CSS and JavaScript and a small SDK, then publish them free or sell them through Stripe.",
+  path: "/developers",
+});
 
 function Code({ children }: { children: string }) {
   return (

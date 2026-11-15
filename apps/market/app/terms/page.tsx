@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ISSUES_URL, REPO_URL } from "@/lib/release";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Terms",
-  description: "The licences myPA is released under, and the rules for the widget Marketplace.",
-};
+export const metadata: Metadata = pageMeta({
+  title: "Terms of use",
+  description:
+    "The open-source licences myPA is released under, and the rules for installing, buying and publishing Marketplace widgets.",
+  path: "/terms",
+});
 
 export default function Terms() {
   return (

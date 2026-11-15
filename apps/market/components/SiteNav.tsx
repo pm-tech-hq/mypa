@@ -114,9 +114,9 @@ export function SiteNav({ account, newest }: { account?: ReactNode; newest: { ve
     href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`);
 
   const card = {
-    href: "/changelog",
-    title: "Updates install by themselves",
-    line: `New in myPA ${newest.version}`,
+    href: "/download",
+    title: "Download myPA",
+    line: "Free for Windows 10 and 11",
   };
 
   return (
@@ -170,7 +170,7 @@ export function SiteNav({ account, newest }: { account?: ReactNode; newest: { ve
                         <span className="nav__card-art" aria-hidden>
                           <span className="nav__card-toast">
                             <i />
-                            Restarting to update to {newest.version}
+                            Stand-up starts in 5 minutes
                           </span>
                         </span>
                         <span className="nav__card-title">{card.title}</span>

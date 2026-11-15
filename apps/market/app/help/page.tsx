@@ -2,16 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ISSUES_URL } from "@/lib/release";
+import { faqLd, JsonLd, pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Help and questions",
+export const metadata: Metadata = pageMeta({
+  title: "Help and FAQ",
   description:
-    "Installing and updating myPA, where your data lives, the built-in AI, connecting calendars and email, and Marketplace widgets.",
-};
+    "Answers about installing and updating myPA, where your data is kept, the offline AI assistant, connecting Google, iCloud and IMAP accounts, and Marketplace widgets.",
+  path: "/help",
+});
 
 interface QA {
   q: string;
   a: React.ReactNode;
+  /** The answer as plain text, for search engines, when `a` has links in it. */
+  plain?: string;
 }
 
 const GROUPS: { id: string; title: string; items: QA[] }[] = [
@@ -32,6 +36,8 @@ const GROUPS: { id: string; title: string; items: QA[] }[] = [
             you will see.
           </>
         ),
+        plain:
+          "The installer isn't code-signed yet, so SmartScreen doesn't recognise it. Choose More info, then Run anyway.",
       },
       {
         q: "Windows won't run the installer or an update at all. Why?",
@@ -59,6 +65,8 @@ const GROUPS: { id: string; title: string; items: QA[] }[] = [
             last good copy next to it, and saves in a way that survives a crash or power cut.
           </>
         ),
+        plain:
+          "In one file on your computer, %APPDATA%\\mypa\\mypa.db. myPA keeps a backup of the last good copy next to it, and saves in a way that survives a crash or power cut.",
       },
       {
         q: "Do I need an account?",
@@ -118,6 +126,7 @@ const GROUPS: { id: string; title: string; items: QA[] }[] = [
             <Link href="/marketplace">Marketplace</Link> here first.
           </>
         ),
+        plain: "Inside myPA, choose Add widget, then Browse the marketplace.",
       },
       {
         q: "Are widgets from other people safe?",
@@ -131,14 +140,20 @@ const GROUPS: { id: string; title: string; items: QA[] }[] = [
             <Link href="/developers">developer guide</Link> covers building, publishing and selling one.
           </>
         ),
+        plain:
+          "Yes. A widget is HTML, CSS and JavaScript with a small SDK. The developer guide on my-pa.xyz covers building, publishing and selling one.",
       },
     ],
   },
 ];
 
 export default function Help() {
+  const faq = GROUPS.flatMap((g) =>
+    g.items.map((it) => ({ q: it.q, a: typeof it.a === "string" ? it.a : (it.plain ?? "") })),
+  ).filter((it) => it.a);
   return (
     <>
+      <JsonLd data={faqLd(faq)} />
       <header className="page-head">
         <div className="wrap">
           <h1 className="p-h1">Help and questions</h1>

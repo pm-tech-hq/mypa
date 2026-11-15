@@ -6,14 +6,16 @@ import { CATEGORY_LABEL, WIDGET_CATEGORIES, type WidgetCategory } from "@repo/wi
 import { Seal } from "@/components/icons";
 import { WidgetCard } from "@/components/WidgetCard";
 import { listListed } from "@/lib/data";
+import { pageMeta } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Marketplace: widgets for your board",
+export const metadata: Metadata = pageMeta({
+  title: "Widget Marketplace",
   description:
-    "Timers, habits, weather and more for your myPA board. Every widget runs in a sandbox, and a checkmark shows who stands behind it.",
-};
+    "Focus timers, habit trackers, weather, world clocks and more for your myPA board. Every widget runs in a sandbox, and a checkmark shows who made it.",
+  path: "/marketplace",
+});
 
 export default async function Marketplace({ searchParams }: PageProps<"/marketplace">) {
   const { category } = await searchParams;

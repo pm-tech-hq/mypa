@@ -8,11 +8,14 @@ import Link from "next/link";
 import { AssistantFrame } from "@/components/product/Board";
 import { Moments } from "@/components/Moments";
 import { AREAS, BUILT_IN_COUNT } from "@/lib/catalog";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Features: every widget in myPA",
-  description: `The ${BUILT_IN_COUNT} widgets built into myPA, for work, study, home and money, and the AI Assistant that works across them.`,
-};
+export const metadata: Metadata = pageMeta({
+  title: "Features: 22 widgets for work, study and home",
+  description:
+    "To-do lists, a daily planner, calendar, email, flashcards, transcription, budgets and a locked journal: every widget built into myPA, and the AI assistant that works across them.",
+  path: "/features",
+});
 
 const MODELS = [
   { name: "Qwen 2.5 · 0.5B", line: "The fastest. About a 750 MB download." },
@@ -38,7 +41,6 @@ export default function Features() {
             {AREAS.map((a) => (
               <a key={a.id} href={`#${a.id}`} className="f-jump__link">
                 {a.title}
-                <span className="muted num">{a.widgets.length}</span>
               </a>
             ))}
             <a href="#assistant" className="f-jump__link">

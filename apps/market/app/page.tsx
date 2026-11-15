@@ -8,6 +8,7 @@
   Voice: plain-practical. "You" for the reader, myPA as the subject; 8 to 16 word sentences;
   no virtue words; the one admission is Windows only and the unsigned installer.
 */
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CloudSun, Globe, Link2, Repeat, Target, Timer } from "lucide-react";
@@ -25,8 +26,17 @@ import { Moments } from "@/components/Moments";
 import { Rise } from "@/components/Rise";
 import { Seal } from "@/components/icons";
 import { latestRelease, megabytes } from "@/lib/release";
+import { JsonLd, pageMeta, siteLd, softwareLd } from "@/lib/seo";
 
 export const revalidate = 3600;
+
+export const metadata: Metadata = pageMeta({
+  title: "myPA: free planner, to-do list and AI assistant for Windows",
+  absoluteTitle: true,
+  description:
+    "myPA is a free Windows app that puts your to-do list, calendar, email and notes on one board, with an AI assistant that runs on your own PC. No account needed.",
+  path: "/",
+});
 
 export default async function Home() {
   const rel = await latestRelease();
@@ -34,19 +44,17 @@ export default async function Home() {
 
   return (
     <>
+      <JsonLd data={[softwareLd(rel), ...siteLd()]} />
       <section className="p-hero" data-enter aria-labelledby="hero-h">
         <div className="wrap p-hero__grid">
           <div className="p-hero__text">
-            <Link href="/changelog" className="p-notice">
-              <span className="p-notice__dot" aria-hidden />
-              New in {rel.version}: updates install by themselves
-            </Link>
             <h1 id="hero-h" className="p-h1">
-              <Rise text="One board for your tasks, mail and calendar" />
+              <Rise text="Your tasks, calendar and inbox on one screen" />
             </h1>
             <p className="p-hero__lead" data-enter-up>
-              myPA is a free Windows app that puts your to-do list, calendar, email and notes side by
-              side, with an AI Assistant that runs on your own computer.
+              myPA is a free Windows app for people with too many tabs open. Put your to-do list,
+              calendar, email and notes side by side, and let the built-in assistant plan your day
+              around your meetings.
             </p>
             <div className="p-hero__ctas" data-enter-up>
               <Link href="/download" className="btn btn--primary btn--lg">
@@ -56,11 +64,9 @@ export default async function Home() {
                 See every widget
               </Link>
             </div>
-            <ul className="p-facts" data-enter-up>
-              <li>Free and open source</li>
-              <li>Windows 10 and 11</li>
-              <li>22 built-in widgets</li>
-            </ul>
+            <p className="p-hero__note" data-enter-up>
+              Free and open source, for Windows 10 and 11. No account needed.
+            </p>
           </div>
           <div className="p-hero__art" data-enter-media>
             <BoardWindow />
@@ -79,13 +85,14 @@ export default async function Home() {
         <div className="wrap">
           <div className="p-head">
             <h2 id="assistant-h" className="p-h2">
-              An Assistant that asks before it acts
+              Ask for help in plain words
             </h2>
             <p className="p-head__line">
-              Tell it what you want in plain words. It reads your mail, calendar and lists, shows you
-              what it will change, and waits for your yes. Every change can be undone.{" "}
+              &ldquo;Archive this week&rsquo;s newsletters.&rdquo; &ldquo;What&rsquo;s due before
+              Friday?&rdquo; The assistant reads your mail, calendar and lists, shows exactly what it
+              will change, and waits for you to approve. Anything it does can be undone.{" "}
               <Link href="/features#assistant" className="link">
-                How the Assistant works
+                How the assistant works
               </Link>
             </p>
           </div>
@@ -97,10 +104,11 @@ export default async function Home() {
         <div className="wrap">
           <div className="p-head">
             <h2 id="widgets-h" className="p-h2">
-              Widgets for work, study and home
+              Pick the widgets your week needs
             </h2>
             <p className="p-head__line">
-              Drag them where you want them, one page per part of your life.{" "}
+              Start with a to-do list and a calendar. Add a planner for work, flashcards for exams or
+              a budget for home, each on a page of its own.{" "}
               <Link href="/features" className="link">
                 See all 22 widgets
               </Link>
@@ -110,36 +118,42 @@ export default async function Home() {
             <article className="bt bt--7">
               <PlannerVisual />
               <div className="bt__text">
-                <h3>Plans your day around meetings</h3>
-                <p>The Daily Planner fills the gaps between calls with your tasks.</p>
+                <h3>Find time for your tasks</h3>
+                <p>
+                  Press Plan my day and the Daily Planner fits your to-do list into the gaps between
+                  meetings. Drag any block it got wrong.
+                </p>
               </div>
             </article>
             <article className="bt bt--5">
               <CaptureVisual />
               <div className="bt__text">
-                <h3>Catches a thought from any app</h3>
-                <p>Press Ctrl+Shift+Space, type it, and it lands as a task or reminder.</p>
+                <h3>Catch a thought from any app</h3>
+                <p>
+                  Press Ctrl+Shift+Space, type a sentence, press Enter. myPA reads the date and files it
+                  as a reminder or a task.
+                </p>
               </div>
             </article>
             <article className="bt bt--4">
               <FlashcardsVisual />
               <div className="bt__text">
-                <h3>Quizzes you on your notes</h3>
-                <p>Cards come back on a spaced-repetition schedule.</p>
+                <h3>Revise with flashcards</h3>
+                <p>Make cards from your notes. The ones you get wrong come back sooner.</p>
               </div>
             </article>
             <article className="bt bt--4">
               <ExpensesVisual />
               <div className="bt__text">
-                <h3>Keeps spending inside a budget</h3>
-                <p>Bills, categories and a month at a glance.</p>
+                <h3>Know what&rsquo;s left this month</h3>
+                <p>Log spending by category and see how much of the budget remains.</p>
               </div>
             </article>
             <article className="bt bt--4">
               <JournalVisual />
               <div className="bt__text">
-                <h3>Locks a private journal</h3>
-                <p>A passcode on every entry, reset with Windows Hello.</p>
+                <h3>Keep a journal nobody else reads</h3>
+                <p>Entries sit behind a passcode. Forgot it? Unlock with Windows Hello.</p>
               </div>
             </article>
           </div>
@@ -149,11 +163,11 @@ export default async function Home() {
       <section className="p-sec p-statement" data-moment="letters-assemble" aria-labelledby="own-h">
         <div className="wrap">
           <h2 id="own-h" className="mo-la__type">
-            Your desk, your data
+            We never see your data
           </h2>
           <p className="mo-la__sub">
-            Everything you add is saved in one file on your computer. There is no account to make, and
-            the built-in AI keeps working with the Wi-Fi off.
+            There is no myPA account and no myPA server holding your notes. Everything you add is saved
+            in one file on your PC, and the built-in AI keeps working with the Wi-Fi off.
           </p>
         </div>
       </section>
@@ -162,11 +176,11 @@ export default async function Home() {
         <div className="wrap p-split">
           <div className="p-split__text">
             <h2 id="privacy-h" className="p-h2">
-              What leaves your computer
+              What goes online, and where
             </h2>
             <p className="p-head__line">
-              Only what you connect. Keys and app passwords are encrypted with Windows&rsquo; own
-              keychain.
+              Only what you choose to connect. Passwords and API keys are encrypted with
+              Windows&rsquo; own credential store.
             </p>
             <Link href="/privacy" className="link">
               Read the privacy policy
@@ -202,12 +216,12 @@ export default async function Home() {
           <Hub />
           <div className="p-split__text">
             <h2 id="connects-h" className="p-h2">
-              Works with the accounts you already have
+              Bring the accounts you already use
             </h2>
             <p className="p-head__line">
-              Add as many calendars and inboxes as you like: Google, Zoho, iCloud, Fastmail or any
-              CalDAV and IMAP account, plus read-only Outlook feeds. Bring an OpenAI or Anthropic key, or
-              use the built-in model.
+              Connect as many calendars and inboxes as you like: Google, Zoho, iCloud, Fastmail, or any
+              CalDAV and IMAP account. Outlook calendars come in read-only. For AI, use the free
+              built-in model or your own OpenAI or Anthropic key.
             </p>
           </div>
         </div>
@@ -217,10 +231,11 @@ export default async function Home() {
         <div className="wrap">
           <div className="p-head">
             <h2 id="market-h" className="p-h2">
-              More widgets in the Marketplace
+              Add widgets other people have built
             </h2>
             <p className="p-head__line">
-              Install them from inside myPA. Each one runs in a sandbox and sees only what you allow.{" "}
+              Focus timers, habit streaks, weather and more. Each one runs in a sandbox and can only
+              touch what you allow when you install it.{" "}
               <Link href="/marketplace" className="link">
                 Browse the Marketplace
               </Link>
@@ -251,7 +266,7 @@ export default async function Home() {
         <div className="wrap p-split">
           <div className="p-split__text">
             <h2 id="faq-h" className="p-h2">
-              Questions before you install
+              Before you install
             </h2>
             <Link href="/help" className="link">
               Read every answer
@@ -284,11 +299,11 @@ export default async function Home() {
       <section className="p-sec p-close" aria-labelledby="close-h">
         <div className="wrap">
           <h2 id="close-h" className="p-h2 p-close__h">
-            Put your whole day on one board
+            Get your week onto one board
           </h2>
           <p className="muted p-close__line">
-            Free · Windows 10 and 11 · Version {rel.version}
-            {size ? ` · ${size}` : ""}
+            Free for Windows 10 and 11{size ? `. A ${size} download that` : ", and it"} installs in
+            about a minute.
           </p>
           <Link href="/download" className="btn btn--primary btn--xl">
             Download for Windows

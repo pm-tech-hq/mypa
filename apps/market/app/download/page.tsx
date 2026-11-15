@@ -4,20 +4,23 @@ import Link from "next/link";
 import { Download, ShieldAlert } from "lucide-react";
 
 import { latestRelease, megabytes, releaseDate, REPO_URL } from "@/lib/release";
+import { JsonLd, pageMeta, softwareLd } from "@/lib/seo";
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: "Download myPA for Windows",
+export const metadata: Metadata = pageMeta({
+  title: "Download myPA for Windows (free)",
   description:
-    "Download the free myPA installer for Windows 10 and 11, and what to do when Windows warns you about it.",
-};
+    "Download the free myPA installer for Windows 10 and 11. Install steps, what to do when SmartScreen warns you, and what your PC needs.",
+  path: "/download",
+});
 
 export default async function DownloadPage() {
   const rel = await latestRelease();
   const size = megabytes(rel.size);
   return (
     <>
+      <JsonLd data={softwareLd(rel)} />
       <section className="p-sec dl-hero" aria-labelledby="dl-h">
         <div className="wrap dl-hero__grid">
           <div>

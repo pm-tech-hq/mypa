@@ -4,13 +4,19 @@ import { notFound } from "next/navigation";
 import { TrustLabel } from "@/components/icons";
 import { WidgetCard } from "@/components/WidgetCard";
 import { listListed, publisherBySlug, trustOf } from "@/lib/data";
+import { pageMeta } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: PageProps<"/publishers/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const p = await publisherBySlug(slug).catch(() => null);
-  return { title: p ? p.name : "Publisher not found" };
+  if (!p) return { title: "Publisher not found", robots: { index: false } };
+  return pageMeta({
+    title: `${p.name}: widgets for myPA`,
+    description: p.bio ?? `Widgets for the myPA board, made by ${p.name}.`,
+    path: `/publishers/${slug}`,
+  });
 }
 
 export default async function PublisherPage({ params }: PageProps<"/publishers/[slug]">) {

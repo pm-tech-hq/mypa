@@ -3,13 +3,16 @@ import Link from "next/link";
 
 import { Markdown } from "@/components/Markdown";
 import { allReleases, releaseDate } from "@/lib/release";
+import { pageMeta } from "@/lib/seo";
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Changelog",
-  description: "What changed in each version of myPA, newest first.",
-};
+  description:
+    "Every myPA release, newest first: new widgets, fixes and improvements to the free Windows planner and assistant.",
+  path: "/changelog",
+});
 
 export default async function Changelog() {
   const releases = await allReleases();

@@ -9,13 +9,19 @@ import { CATEGORY_LABEL, formatPrice } from "@repo/widget-sdk";
 import { PermissionList, Tile, TrustLabel } from "@/components/icons";
 import { approvedVersions, getListed } from "@/lib/data";
 import { stripeReady } from "@/lib/stripe";
+import { pageMeta } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: PageProps<"/widgets/[id]">): Promise<Metadata> {
   const { id } = await params;
   const w = await getListed(decodeURIComponent(id)).catch(() => null);
-  return w ? { title: w.manifest.name, description: w.manifest.summary } : { title: "Widget not found" };
+  if (!w) return { title: "Widget not found", robots: { index: false } };
+  return pageMeta({
+    title: `${w.manifest.name}: a widget for myPA`,
+    description: `${w.manifest.summary} By ${w.publisher.name}. Install it on your myPA board for Windows.`,
+    path: `/widgets/${encodeURIComponent(w.id)}`,
+  });
 }
 
 function formatBytes(n: number) {

@@ -1,34 +1,59 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import "@repo/design-system/styles.css";
 import "./globals.css";
 import "./site.css";
 
 import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
-import { siteUrl } from "@/lib/data";
+import { SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl()),
+  metadataBase: new URL(SITE_URL),
+  applicationName: "myPA",
   title: {
-    default: "myPA: a free personal assistant app for Windows",
+    default: "myPA: free planner, to-do list and AI assistant for Windows",
     template: "%s · myPA",
   },
   description:
-    "myPA puts your to-do list, calendar, email and notes on one board, with an AI Assistant that runs on your own computer. Free and open source for Windows 10 and 11.",
+    "myPA is a free Windows app that puts your to-do list, calendar, email and notes on one board, with an AI assistant that runs on your own PC. No account needed.",
+  keywords: [
+    "personal assistant app",
+    "Windows planner app",
+    "to-do list and calendar app",
+    "offline AI assistant",
+    "desktop dashboard",
+    "daily planner",
+    "free productivity app",
+  ],
+  creator: "myPA",
+  category: "productivity",
+  alternates: { canonical: "/" },
   openGraph: {
-    siteName: "myPA",
     type: "website",
+    siteName: "myPA",
+    locale: "en_GB",
+    url: "/",
   },
-  icons: { icon: "/icon.svg" },
+  twitter: { card: "summary_large_image" },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+  },
+  formatDetection: { telephone: false, email: false, address: false },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f2f2f2",
+  colorScheme: "light",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-type="software">
+    <html lang="en-GB" data-type="software">
       <head>
         <meta name="page-type" content="software" />
         <meta name="site-kind" content="software" />
-        <meta name="theme-color" content="#f2f2f2" />
       </head>
       <body>
         <a href="#main" className="skip">
